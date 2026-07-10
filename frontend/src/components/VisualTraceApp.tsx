@@ -16,6 +16,8 @@ import {
   getRuntimeStatus,
   isLanguageReady,
   preloadPythonRuntime,
+  preloadRuntime,
+  type RuntimeLoadStatus,
 } from "@/lib/browser-runner";
 import { getPreferredStepAfterRun, shouldResetPlaybackOnSourceChange } from "@/lib/playback";
 import { getLanguageDisplayName } from "@/lib/runners/shared";
@@ -63,7 +65,8 @@ export default function VisualTraceApp() {
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle");
-  const [pythonStatus, setPythonStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [pythonStatus, setPythonStatus] = useState<RuntimeLoadStatus>("loading");
+  const [cppStatus, setCppStatus] = useState<RuntimeLoadStatus>("loading");
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const [showTestInput, setShowTestInput] = useState(true);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("console");
@@ -87,9 +90,19 @@ export default function VisualTraceApp() {
         setPythonStatus("error");
         setRuntimeError(err instanceof Error ? err.message : "Failed to load Python runtime");
       });
+
+    preloadRuntime("cpp")
+      .then(() => setCppStatus("ready"))
+      .catch((err) => {
+        setCppStatus("error");
+        setRuntimeError((prev) =>
+          prev ?? (err instanceof Error ? err.message : "Failed to load C++ runtime")
+        );
+      });
   }, []);
 
-  const runtimeStatus = getRuntimeStatus(language, pythonStatus);
+  const runtimeStatuses = { python: pythonStatus, cpp: cppStatus };
+  const runtimeStatus = getRuntimeStatus(language, runtimeStatuses);
   const languageLabel = getLanguageDisplayName(language);
 
   const resetPlaybackToStart = useCallback(() => {
@@ -195,7 +208,7 @@ export default function VisualTraceApp() {
   };
 
   const handleRun = async () => {
-    if (!isLanguageReady(language, pythonStatus)) {
+    if (!isLanguageReady(language, runtimeStatuses)) {
       if (runtimeStatus === "unsupported") {
         setResult({
           stdout: "",
@@ -415,7 +428,8 @@ export default function VisualTraceApp() {
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
-            {runtimeStatus === "loading" && language === "python" && (
+            {runtimeStatus === "loading" &&
+              (language === "python" || language === "cpp") && (
               <Loader2 className="h-3 w-3 animate-spin text-yellow-500" />
             )}
             <div

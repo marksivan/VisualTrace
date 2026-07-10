@@ -125,5 +125,10 @@ export function getLanguageDisplayName(language: Language): string {
 }
 
 export function isRuntimeLanguage(language: Language): boolean {
-  return language === "python" || language === "javascript";
+  return (
+    language === "python" ||
+    language === "javascript" ||
+    language === "java" ||
+    language === "cpp"
+  );
 }

@@ -28,6 +28,8 @@ export function isInspectableVariable(name: string, value: unknown): boolean {
   if (name.startsWith("_")) return false;
   if (name === "result") return false;
 
+  if (typeof value === "function") return false;
+
   if (typeof value === "string") {
     const hiddenPrefixes = [
       "<function ",

@@ -8,8 +8,6 @@ venv/
 # Build
 .next/
 out/
-dist/
-build/
 
 # Environment
 .env

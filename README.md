@@ -39,6 +39,31 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000). The landing page shows API connection status.
 
+### Publish to GitHub Pages
+
+The frontend is a **static site** and deploys automatically when changes merge to `main`.
+
+**One-time setup in your GitHub repo:**
+
+1. Go to **Settings → Pages**
+2. Under **Build and deployment**, set **Source** to **GitHub Actions**
+
+After the first merge to `main`, the workflow publishes the site to:
+
+**https://marksivan.github.io/VisualTrace/**
+
+To preview the production build locally:
+
+```bash
+cd frontend
+npm run build:pages
+npx serve out
+```
+
+Then open `http://localhost:3000/VisualTrace/`.
+
+> **Note:** GitHub Pages hosts the frontend only. The FastAPI backend must run locally or on a separate host. Set `NEXT_PUBLIC_API_URL` at build time if you deploy the API elsewhere.
+
 ### Docker
 
 ```bash
@@ -49,7 +74,8 @@ docker compose up --build
 
 ```
 visualtrace/
-├── frontend/          # Next.js app
+├── .github/workflows/ # GitHub Pages deploy workflow
+├── frontend/          # Next.js static site
 ├── api/               # FastAPI backend
 │   └── app/routers/   # Health endpoint
 ├── runners/python/    # Docker runner (placeholder until Milestone 3)

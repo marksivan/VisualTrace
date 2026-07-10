@@ -1,16 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Activity } from "lucide-react";
+import { getApiUrl, isGitHubPagesHost } from "@/lib/config";
 
 type ApiStatus = "checking" | "connected" | "disconnected";
 
+function useIsGitHubPages() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => isGitHubPagesHost(),
+    () => false
+  );
+}
+
 export default function Home() {
   const [apiStatus, setApiStatus] = useState<ApiStatus>("checking");
+  const onGitHubPages = useIsGitHubPages();
 
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
+    const apiUrl = getApiUrl();
     fetch(`${apiUrl}/health`)
       .then((res) => setApiStatus(res.ok ? "connected" : "disconnected"))
       .catch(() => setApiStatus("disconnected"));
@@ -58,7 +67,15 @@ export default function Home() {
                   : "disconnected"}
             </span>
           </div>
-          {apiStatus === "disconnected" && (
+          {apiStatus === "disconnected" && onGitHubPages && (
+            <p className="mt-2 text-xs text-zinc-500">
+              The live site is the frontend only. Run the API locally for full
+              functionality, or deploy it separately and set{" "}
+              <code className="text-zinc-400">NEXT_PUBLIC_API_URL</code> at build
+              time.
+            </p>
+          )}
+          {apiStatus === "disconnected" && !onGitHubPages && (
             <p className="mt-2 text-xs text-zinc-500">
               Start the API with:{" "}
               <code className="text-zinc-400">

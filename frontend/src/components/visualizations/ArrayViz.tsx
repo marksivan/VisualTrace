@@ -1,25 +1,53 @@
 "use client";
 
+import type { Theme } from "@/lib/theme";
+import { getThemeClasses } from "@/lib/theme";
+
 interface ArrayVizProps {
   name: string;
   data: unknown[];
+  highlightIndex?: number;
+  theme?: Theme;
 }
 
-export default function ArrayViz({ name, data }: ArrayVizProps) {
+export default function ArrayViz({
+  name,
+  data,
+  highlightIndex,
+  theme = "dark",
+}: ArrayVizProps) {
+  const t = getThemeClasses(theme);
+  const isDark = theme === "dark";
+
   return (
-    <div className="rounded-md border border-zinc-800 p-3">
-      <div className="mb-2 font-mono text-xs font-medium text-purple-400">
-        {name} <span className="text-zinc-600">array[{data.length}]</span>
+    <div className={`p-3 ${t.card}`}>
+      <div className="mb-2 font-mono text-xs font-medium text-purple-500 dark:text-purple-400">
+        {name} <span className={t.labelMuted}>array[{data.length}]</span>
       </div>
       <div className="flex flex-wrap gap-1.5">
-        {data.map((item, i) => (
-          <div key={i} className="flex flex-col items-center">
-            <div className="flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-purple-700/50 bg-purple-900/30 px-2 font-mono text-sm text-purple-200">
-              {formatValue(item)}
-            </div>
-            <span className="mt-0.5 font-mono text-[10px] text-zinc-600">{i}</span>
-          </div>
-        ))}
+        {data.length === 0 ? (
+          <span className={`text-xs ${t.subtext}`}>empty</span>
+        ) : (
+          data.map((item, i) => {
+            const isHighlighted = highlightIndex === i;
+            return (
+              <div key={i} className="flex flex-col items-center">
+                <div
+                  className={`flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border px-2 font-mono text-sm ${
+                    isHighlighted
+                      ? "border-blue-500 bg-blue-500/20 text-blue-600 dark:text-blue-200 ring-2 ring-blue-500/40"
+                      : isDark
+                        ? "border-purple-700/50 bg-purple-900/30 text-purple-200"
+                        : "border-purple-300 bg-purple-50 text-purple-800"
+                  }`}
+                >
+                  {formatValue(item)}
+                </div>
+                <span className={`mt-0.5 font-mono text-[10px] ${t.labelMuted}`}>{i}</span>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

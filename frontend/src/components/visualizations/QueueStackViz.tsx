@@ -1,50 +1,67 @@
 "use client";
 
+import type { Theme } from "@/lib/theme";
+import { getThemeClasses } from "@/lib/theme";
+
 interface QueueStackVizProps {
   name: string;
   type: "queue" | "stack";
-  data: string;
+  items: unknown[];
+  theme?: Theme;
 }
 
-export default function QueueStackViz({ name, type, data }: QueueStackVizProps) {
-  let items: string[] = [];
-  try {
-    const parsed = JSON.parse(data);
-    if (Array.isArray(parsed)) items = parsed.map(String);
-  } catch {
-    items = data ? [data] : [];
-  }
+export default function QueueStackViz({
+  name,
+  type,
+  items,
+  theme = "dark",
+}: QueueStackVizProps) {
+  const t = getThemeClasses(theme);
+  const displayItems = (type === "stack" ? [...items].reverse() : items).map(String);
+  const isQueue = type === "queue";
 
-  const displayItems = type === "stack" ? [...items].reverse() : items;
-  const color = type === "queue" ? "teal" : "orange";
+  const colors = isQueue
+    ? {
+        label: "text-teal-600 dark:text-teal-400",
+        cell: "border-teal-400/50 bg-teal-50 text-teal-800 dark:border-teal-700/50 dark:bg-teal-900/30 dark:text-teal-200",
+      }
+    : {
+        label: "text-orange-600 dark:text-orange-400",
+        cell: "border-orange-400/50 bg-orange-50 text-orange-800 dark:border-orange-700/50 dark:bg-orange-900/30 dark:text-orange-200",
+      };
 
   return (
-    <div className="rounded-md border border-zinc-800 p-3">
-      <div className={`mb-2 font-mono text-xs font-medium text-${color}-400`}>
-        {name} <span className="text-zinc-600">{type}</span>
+    <div className={`p-3 ${t.card}`}>
+      <div className={`mb-2 font-mono text-xs font-medium ${colors.label}`}>
+        {name} <span className={t.labelMuted}>{type}</span>
       </div>
-      <div className="flex items-end gap-1">
-        {type === "queue" && (
-          <span className="mr-1 font-mono text-[10px] text-zinc-600">front →</span>
+      <div className="flex items-center gap-1 overflow-x-auto">
+        {isQueue && (
+          <span className={`mr-1 shrink-0 font-mono text-[10px] ${t.labelMuted}`}>
+            front →
+          </span>
         )}
-        {displayItems.map((item, i) => (
-          <div
-            key={i}
-            className={`flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border bg-${color}-900/30 px-2 font-mono text-sm`}
-            style={{
-              borderColor: type === "queue" ? "rgb(45 212 191 / 0.5)" : "rgb(251 146 60 / 0.5)",
-              backgroundColor: type === "queue" ? "rgb(19 78 74 / 0.3)" : "rgb(124 45 18 / 0.3)",
-              color: type === "queue" ? "rgb(153 246 228)" : "rgb(254 215 170)",
-            }}
-          >
-            {item}
-          </div>
-        ))}
-        {type === "queue" && (
-          <span className="ml-1 font-mono text-[10px] text-zinc-600">← back</span>
+        {displayItems.length === 0 ? (
+          <span className={`text-xs ${t.subtext}`}>empty</span>
+        ) : (
+          displayItems.map((item, i) => (
+            <div
+              key={`${item}-${i}`}
+              className={`flex h-10 min-w-[2.5rem] shrink-0 items-center justify-center rounded-md border px-2 font-mono text-sm ${colors.cell}`}
+            >
+              {item}
+            </div>
+          ))
         )}
-        {type === "stack" && (
-          <span className="ml-1 font-mono text-[10px] text-zinc-600">↑ top</span>
+        {isQueue && displayItems.length > 0 && (
+          <span className={`ml-1 shrink-0 font-mono text-[10px] ${t.labelMuted}`}>
+            ← back
+          </span>
+        )}
+        {!isQueue && displayItems.length > 0 && (
+          <span className={`ml-1 shrink-0 font-mono text-[10px] ${t.labelMuted}`}>
+            ↑ top
+          </span>
         )}
       </div>
     </div>

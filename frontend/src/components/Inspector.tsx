@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { TraceStep } from "@/types";
+import { formatValueForDisplay, isMultilineDisplay } from "@/lib/format";
 import DataVisualization from "./visualizations/DataVisualization";
 
 interface InspectorProps {
@@ -74,6 +75,23 @@ export default function Inspector({
   );
 }
 
+function ValueDisplay({ value }: { value: unknown }) {
+  const text = formatValueForDisplay(value);
+  const multiline = isMultilineDisplay(text);
+
+  if (multiline) {
+    return (
+      <pre className="mt-1 overflow-x-auto whitespace-pre font-mono text-xs leading-relaxed text-zinc-300">
+        {text}
+      </pre>
+    );
+  }
+
+  return (
+    <code className="mt-1 block font-mono text-sm text-zinc-200">{text}</code>
+  );
+}
+
 function VariablesPanel({
   step,
   result,
@@ -81,7 +99,7 @@ function VariablesPanel({
   step: TraceStep | null;
   result: unknown;
 }) {
-  if (!step) {
+  if (!step && (result === null || result === undefined)) {
     return (
       <p className="text-sm text-zinc-500">
         Run your code to inspect variables at each step.
@@ -89,28 +107,27 @@ function VariablesPanel({
     );
   }
 
-  const allVars = { ...step.globals, ...step.locals };
+  const allVars = step ? { ...step.globals, ...step.locals } : {};
+  const varEntries = Object.entries(allVars);
+  const hasResult = result !== null && result !== undefined;
 
   return (
     <div className="space-y-3">
-      {Object.keys(allVars).length === 0 ? (
-        <p className="text-sm text-zinc-500">No variables in scope.</p>
-      ) : (
-        Object.entries(allVars).map(([name, value]) => (
-          <div key={name} className="rounded-md border border-zinc-800 bg-zinc-900/50 p-2">
+      {varEntries.length > 0 ? (
+        varEntries.map(([name, value]) => (
+          <div key={name} className="rounded-md border border-zinc-800 bg-zinc-900/50 p-3">
             <div className="font-mono text-xs font-medium text-blue-400">{name}</div>
-            <pre className="mt-1 overflow-x-auto font-mono text-xs text-zinc-300">
-              {JSON.stringify(value, null, 2)}
-            </pre>
+            <ValueDisplay value={value} />
           </div>
         ))
-      )}
-      {result !== null && result !== undefined && (
-        <div className="rounded-md border border-green-800/50 bg-green-900/20 p-2">
+      ) : step ? (
+        <p className="text-sm text-zinc-500">No local variables at this step.</p>
+      ) : null}
+
+      {hasResult && (
+        <div className="rounded-md border border-green-800/50 bg-green-900/20 p-3">
           <div className="font-mono text-xs font-medium text-green-400">result</div>
-          <pre className="mt-1 overflow-x-auto font-mono text-xs text-zinc-300">
-            {JSON.stringify(result, null, 2)}
-          </pre>
+          <ValueDisplay value={result} />
         </div>
       )}
     </div>

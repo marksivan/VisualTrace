@@ -224,6 +224,10 @@ export function getActiveArrayIndices(step: TraceStep | null): number[] {
 function shouldVisualizeString(value: string): boolean {
   if (value.length === 0) return false;
 
+  if (value.startsWith("<") && value.includes("at 0x")) {
+    return false;
+  }
+
   const hiddenPrefixes = [
     "<function ",
     "<builtin function",

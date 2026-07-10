@@ -88,8 +88,12 @@ def serialize_value(value, depth=0):
     node_attrs = ("val", "value", "key", "left", "right", "next", "neighbors", "children")
     if hasattr(value, "__dict__"):
         attrs = {}
+        for attr, attr_value in value.__dict__.items():
+            if attr.startswith("_"):
+                continue
+            attrs[attr] = serialize_value(attr_value, depth + 1)
         for attr in node_attrs:
-            if hasattr(value, attr):
+            if attr not in attrs and hasattr(value, attr):
                 attrs[attr] = serialize_value(getattr(value, attr), depth + 1)
         if attrs:
             return attrs

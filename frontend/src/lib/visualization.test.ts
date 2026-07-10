@@ -121,6 +121,34 @@ describe("getVisualizableVariables", () => {
       "r",
     ]);
   });
+
+  it("does not visualize python object repr strings", () => {
+    const step = makeStep({
+      locals: {
+        union_find: "<UnionFind object at 0x1a2b3c4d0>",
+        self: "<UnionFind object at 0x1a2b3c4d0>",
+      },
+    });
+
+    expect(getVisualizableVariables(step)).toEqual([]);
+  });
+
+  it("visualizes union-find parent and rank dicts", () => {
+    const step = makeStep({
+      locals: {
+        self: {
+          parent: { 0: 0, 1: 1, 2: 2 },
+          rank: { 0: 1, 1: 0, 2: 0 },
+        },
+        first: 0,
+        second: 1,
+      },
+    });
+
+    const items = getVisualizableVariables(step);
+    expect(items.find((item) => item.name === "self")?.type).toBe("dict");
+    expect(items.filter((item) => item.type === "dict").length).toBe(1);
+  });
 });
 
 describe("structure helpers", () => {

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "VisualTrace — Algorithm Visualizer",
   description:
-    "Multi-language algorithm execution visualizer. Step through code line by line.",
+    "Multi-language algorithm execution visualizer. Step through code line by line and understand algorithms visually.",
 };
 
 export default function RootLayout({

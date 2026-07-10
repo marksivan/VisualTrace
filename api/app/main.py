@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import health
+from app.routers import execution, health
 
 app = FastAPI(
     title="VisualTrace API",
@@ -18,3 +18,4 @@ app.add_middleware(
 )
 
 app.include_router(health.router, tags=["health"])
+app.include_router(execution.router, prefix="/api", tags=["execution"])

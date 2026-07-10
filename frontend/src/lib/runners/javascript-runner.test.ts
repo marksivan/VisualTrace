@@ -58,32 +58,27 @@ console.log(result);`,
 
   it("keeps visualizable trace data in script mode even with stdout", () => {
     const result = executeJavaScriptInBrowser({
-      source: `function twoSum(nums, target) {
-  const seen = {};
-  for (let i = 0; i < nums.length; i++) {
-    const num = nums[i];
-    const complement = target - num;
-    if (complement in seen) {
-      return [seen[complement], i];
-    }
-    seen[num] = i;
+      source: `function walk(text) {
+  let left = 0;
+  let right = text.length - 1;
+  while (left < right) {
+    left += 1;
+    right -= 1;
   }
-  return [];
 }
-const result = twoSum([2, 7, 11, 15], 9);
-console.log(result);`,
+const result = walk("racecar");
+console.log("done");`,
       language: "javascript",
       stdin: "",
       trace: true,
     });
 
     expect(result.error).toBeNull();
-    expect(result.stdout).toContain("[");
     expect(hasVisualizableTrace(result.trace)).toBe(true);
     expect(
       getVisualizableVariables(result.trace[getPreferredStepAfterRun(result.trace)])
-        .length
-    ).toBeGreaterThan(0);
+        .some((item) => item.name === "text")
+    ).toBe(true);
   });
 
   it("runs function mode via wrapper", () => {

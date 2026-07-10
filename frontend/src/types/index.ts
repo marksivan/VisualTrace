@@ -45,11 +45,8 @@ export interface ExecuteRequest {
 export interface Session {
   id: string;
   language: Language;
-  executionMode: ExecutionMode;
   source: string;
   stdin: string;
-  functionName: string;
-  functionArgs: string;
   createdAt: string;
   result?: ExecutionResult;
   playbackPosition: number;
@@ -59,7 +56,6 @@ export interface AppSettings {
   theme: "light" | "dark";
   fontSize: number;
   autoSave: boolean;
-  executionMode: ExecutionMode;
 }
 
 export type PlaybackState = "idle" | "playing" | "paused" | "finished";

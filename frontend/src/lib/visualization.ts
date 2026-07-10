@@ -127,11 +127,11 @@ function detectVizType(name: string, value: unknown): VizType | null {
   if (lower.includes("queue") || lower.includes("deque")) return "queue";
   if (lower.includes("stack")) return "stack";
 
-  if (
-    typeof value === "number" ||
-    typeof value === "string" ||
-    typeof value === "boolean"
-  ) {
+  if (typeof value === "string") {
+    return shouldVisualizeString(value) ? "array" : "primitive";
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
     return "primitive";
   }
 
@@ -182,19 +182,59 @@ function lowerIncludesLinkedListHint(value: Record<string, unknown>): boolean {
   return Object.keys(value).some((key) => key.toLowerCase().includes("next"));
 }
 
-/** Find a loop index variable to highlight in array visualizations. */
-export function getActiveArrayIndex(step: TraceStep | null): number | undefined {
-  if (!step) return undefined;
+const POINTER_INDEX_KEYS = [
+  "left",
+  "right",
+  "i",
+  "j",
+  "k",
+  "idx",
+  "index",
+  "mid",
+] as const;
 
-  const indexKeys = ["i", "j", "k", "idx", "index", "left", "right", "mid"];
-  for (const key of indexKeys) {
-    const val = step.locals[key];
+function collectPointerIndices(
+  locals: Record<string, unknown>
+): number[] {
+  const indices: number[] = [];
+
+  for (const key of POINTER_INDEX_KEYS) {
+    const val = locals[key];
     if (typeof val === "number" && Number.isInteger(val) && val >= 0) {
-      return val;
+      if (!indices.includes(val)) {
+        indices.push(val);
+      }
     }
   }
 
-  return undefined;
+  return indices;
+}
+
+/** Find a loop index variable to highlight in array visualizations. */
+export function getActiveArrayIndex(step: TraceStep | null): number | undefined {
+  return getActiveArrayIndices(step)[0];
+}
+
+/** Highlight multiple pointer indices (e.g. left and right in two-pointer problems). */
+export function getActiveArrayIndices(step: TraceStep | null): number[] {
+  if (!step) return [];
+  return collectPointerIndices(step.locals);
+}
+
+function shouldVisualizeString(value: string): boolean {
+  if (value.length === 0) return false;
+
+  const hiddenPrefixes = [
+    "<function ",
+    "<builtin function",
+    "<method ",
+    "<module ",
+    "<class ",
+    "<cell ",
+    "<wrapper ",
+  ];
+
+  return !hiddenPrefixes.some((prefix) => value.startsWith(prefix));
 }
 
 export function toArrayItems(value: unknown): unknown[] {
@@ -204,10 +244,14 @@ export function toArrayItems(value: unknown): unknown[] {
       const parsed = JSON.parse(value);
       if (Array.isArray(parsed)) return parsed;
     } catch {
-      return value ? [value] : [];
+      return Array.from(value);
     }
   }
   return [];
+}
+
+export function isStringArrayValue(value: unknown): boolean {
+  return typeof value === "string" && shouldVisualizeString(value);
 }
 
 export function linkedListToArray(head: LinkedListNode | null | undefined): unknown[] {

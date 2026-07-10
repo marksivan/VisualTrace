@@ -3,6 +3,7 @@ import type { TraceStep } from "@/types";
 import { getPreferredStepAfterRun } from "./playback";
 import {
   getActiveArrayIndex,
+  getActiveArrayIndices,
   getFirstVisualizableStep,
   getLastVisualizableStep,
   getVisualizableVariables,
@@ -12,6 +13,7 @@ import {
   isTreeNode,
   linkedListToArray,
   shouldShowRecursionTree,
+  toArrayItems,
 } from "./visualization";
 
 function makeStep(partial: Partial<TraceStep>): TraceStep {
@@ -99,6 +101,26 @@ describe("getVisualizableVariables", () => {
     const items = getVisualizableVariables(step);
     expect(items.find((i) => i.name === "result")?.type).toBe("array");
   });
+
+  it("visualizes strings as character arrays", () => {
+    const step = makeStep({
+      locals: {
+        text: "racecar",
+      },
+    });
+
+    const items = getVisualizableVariables(step);
+    expect(items.find((i) => i.name === "text")?.type).toBe("array");
+    expect(toArrayItems("racecar")).toEqual([
+      "r",
+      "a",
+      "c",
+      "e",
+      "c",
+      "a",
+      "r",
+    ]);
+  });
 });
 
 describe("structure helpers", () => {
@@ -146,6 +168,14 @@ describe("shouldShowRecursionTree", () => {
     });
 
     expect(shouldShowRecursionTree(step)).toBe(false);
+  });
+});
+
+describe("getActiveArrayIndices", () => {
+  it("returns both left and right pointer indices", () => {
+    const step = makeStep({ locals: { left: 0, right: 6, text: "racecar" } });
+    expect(getActiveArrayIndices(step)).toEqual([0, 6]);
+    expect(getActiveArrayIndex(step)).toBe(0);
   });
 });
 

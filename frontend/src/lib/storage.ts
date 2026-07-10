@@ -15,7 +15,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   theme: "dark",
   fontSize: 14,
   autoSave: true,
-  executionMode: "script",
 };
 
 const DEFAULT_PYTHON_SCRIPT_SOURCE = `def two_sum(nums, target):
@@ -164,14 +163,15 @@ export const DEFAULT_FUNCTION_ARGS = "[[2, 7, 11, 15], 9]";
 
 export const EMPTY_FUNCTION_ARGS = "[]";
 
-export function getEmptySource(
-  _language: Language,
-  _mode: ExecutionMode = "script"
-): string {
+export function getEmptySource(_language: Language): string {
   return "";
 }
 
-export function getDefaultSource(
+export function getDefaultSource(language: Language): string {
+  return getDefaultSourceForMode(language, "script");
+}
+
+function getDefaultSourceForMode(
   language: Language,
   mode: ExecutionMode = "script"
 ): string {
@@ -197,35 +197,33 @@ export function getDefaultSource(
   }
 }
 
-export function loadSource(
-  language: Language,
-  mode: ExecutionMode = "script"
-): string {
-  if (typeof window === "undefined") return getDefaultSource(language, mode);
+export function loadSource(language: Language): string {
+  if (typeof window === "undefined") return getDefaultSource(language);
 
-  const key = STORAGE_KEYS.source(language, mode);
+  const key = STORAGE_KEYS.source(language, "script");
   const stored = localStorage.getItem(key);
   if (stored !== null) return stored;
 
-  // Migrate legacy single-key storage into script mode.
-  if (mode === "script") {
-    const legacy = localStorage.getItem(STORAGE_KEYS.legacySource(language));
-    if (legacy !== null) {
-      localStorage.setItem(key, legacy);
-      return legacy;
-    }
+  const legacy = localStorage.getItem(STORAGE_KEYS.legacySource(language));
+  if (legacy !== null) {
+    localStorage.setItem(key, legacy);
+    return legacy;
   }
 
-  return getDefaultSource(language, mode);
+  const functionModeSource = localStorage.getItem(
+    STORAGE_KEYS.source(language, "function")
+  );
+  if (functionModeSource !== null) {
+    localStorage.setItem(key, functionModeSource);
+    return functionModeSource;
+  }
+
+  return getDefaultSource(language);
 }
 
-export function saveSource(
-  language: Language,
-  source: string,
-  mode: ExecutionMode = "script"
-): void {
+export function saveSource(language: Language, source: string): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEYS.source(language, mode), source);
+  localStorage.setItem(STORAGE_KEYS.source(language, "script"), source);
 }
 
 export function loadFunctionName(language: Language): string {
@@ -256,7 +254,13 @@ export function loadSettings(): AppSettings {
   if (typeof window === "undefined") return DEFAULT_SETTINGS;
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.settings);
-    return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : DEFAULT_SETTINGS;
+    if (!raw) return DEFAULT_SETTINGS;
+    const parsed = JSON.parse(raw) as Partial<AppSettings>;
+    return {
+      theme: parsed.theme ?? DEFAULT_SETTINGS.theme,
+      fontSize: parsed.fontSize ?? DEFAULT_SETTINGS.fontSize,
+      autoSave: parsed.autoSave ?? DEFAULT_SETTINGS.autoSave,
+    };
   } catch {
     return DEFAULT_SETTINGS;
   }

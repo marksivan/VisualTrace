@@ -6,10 +6,11 @@ import type { Theme } from "@/lib/theme";
 import { getThemeClasses } from "@/lib/theme";
 import { detectPattern } from "@/lib/patternDetection";
 import {
-  getActiveArrayIndex,
+  getActiveArrayIndices,
   getVisualizableVariables,
   isAdjacencyList,
   isLinkedListNode,
+  isStringArrayValue,
   isTreeNode,
   shouldShowRecursionTree,
   toArrayItems,
@@ -79,7 +80,7 @@ export default function DataVisualization({
 
   const items = step ? getVisualizableVariables(step) : [];
   const showRecursion = step ? shouldShowRecursionTree(step) : false;
-  const activeIndex = step ? getActiveArrayIndex(step) : undefined;
+  const activeIndices = step ? getActiveArrayIndices(step) : [];
   const hasStepVisuals = items.length > 0 || showRecursion;
 
   if (!hasRun) {
@@ -118,20 +119,20 @@ export default function DataVisualization({
       {step &&
         items.map(({ name, type, value }) => {
           switch (type) {
-            case "array":
+            case "array": {
+              const data = toArrayItems(value);
+              const highlights = activeIndices.filter((index) => index < data.length);
               return (
                 <ArrayViz
                   key={name}
                   name={name}
-                  data={toArrayItems(value)}
-                  highlightIndex={
-                    activeIndex !== undefined && activeIndex < toArrayItems(value).length
-                      ? activeIndex
-                      : undefined
-                  }
+                  data={data}
+                  highlightIndices={highlights.length > 0 ? highlights : undefined}
+                  variant={isStringArrayValue(value) ? "string" : "array"}
                   theme={theme}
                 />
               );
+            }
             case "dict":
               return (
                 <DictViz

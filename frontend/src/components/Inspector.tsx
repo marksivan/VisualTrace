@@ -10,6 +10,8 @@ interface InspectorProps {
   stderr: string;
   result: unknown;
   error: string | null;
+  activeTab?: "variables" | "stack" | "console" | "visualize";
+  onTabChange?: (tab: "variables" | "stack" | "console" | "visualize") => void;
 }
 
 export default function Inspector({
@@ -18,8 +20,16 @@ export default function Inspector({
   stderr,
   result,
   error,
+  activeTab: controlledTab,
+  onTabChange,
 }: InspectorProps) {
-  const [activeTab, setActiveTab] = useState<"variables" | "stack" | "console" | "visualize">("variables");
+  const [internalTab, setInternalTab] = useState<"variables" | "stack" | "console" | "visualize">("variables");
+  const activeTab = controlledTab ?? internalTab;
+
+  const setActiveTab = (tab: "variables" | "stack" | "console" | "visualize") => {
+    if (onTabChange) onTabChange(tab);
+    else setInternalTab(tab);
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -40,6 +50,17 @@ export default function Inspector({
       </div>
 
       <div className="flex-1 overflow-auto p-3">
+        {error && activeTab === "variables" && (
+          <div className="mb-3 rounded-md border border-red-800/50 bg-red-900/20 p-3 text-xs text-red-300">
+            {error}
+            <button
+              onClick={() => setActiveTab("console")}
+              className="mt-2 block text-red-400 underline hover:text-red-200"
+            >
+              View full error in Console
+            </button>
+          </div>
+        )}
         {activeTab === "variables" && (
           <VariablesPanel step={step} result={result} />
         )}

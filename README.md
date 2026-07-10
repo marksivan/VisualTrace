@@ -2,119 +2,50 @@
 
 Multi-language algorithm execution visualizer. Paste code, run it, and step through execution line by line to understand algorithms visually.
 
-## Architecture
+**No terminal required.** Open the website, write Python, and run — everything executes in your browser and saves to local storage.
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js, TypeScript, Monaco Editor, Tailwind CSS |
-| API | FastAPI (Python) |
-| Execution | Docker-isolated language runners |
-| Storage | Browser Local Storage (MVP) |
+## How to use
 
-## Quick Start
+Visit **https://marksivan.github.io/VisualTrace/**
 
-### Prerequisites
+1. Wait for **Python ready** (first visit downloads ~10 MB, then caches)
+2. Click **Run**
+3. Step through execution with the playback controls
 
-- Node.js 20+
-- Python 3.12+
-- Docker (for isolated code execution)
+Your code never leaves your browser. Sessions and source code are saved to **local storage**.
 
-### Development (without Docker)
+### Optional function call mode
+
+Leave **Function Name** empty to run the script as written (default `two_sum` example).
+
+To call a specific function instead, set:
+- **Function Name:** `two_sum`
+- **Function Args:** `[[2, 7, 11, 15], 9]`
+
+## Publish to GitHub Pages
+
+1. Merge to `main`
+2. **Settings → Pages → Source** → **GitHub Actions**
+3. Site deploys automatically to `https://marksivan.github.io/VisualTrace/`
+
+## Local preview
 
 ```bash
-# API — uses local Python runner
-cd api
-pip install -r requirements.txt
-USE_DOCKER_RUNNER=false uvicorn app.main:app --reload --port 8000
-
-# Frontend
 cd frontend
 npm install
-npm run dev
+npm run build:pages
+npx serve out
+# Open http://localhost:3000/VisualTrace/
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+## Architecture
 
-### Full Stack (with Docker)
-
-```bash
-# Build the Python runner image
-docker build -t visualtrace-python-runner ./runners/python
-
-# Start all services
-docker compose up --build
-```
-
-## Project Structure
-
-```
-visualtrace/
-├── frontend/          # Next.js app
-│   └── src/
-│       ├── components/    # UI components
-│       ├── lib/           # API client, local storage
-│       └── types/         # TypeScript types
-├── api/               # FastAPI backend
-│   └── app/
-│       ├── runners/       # LanguageRunner interface + PythonRunner
-│       ├── routers/       # API endpoints
-│       └── models/        # Pydantic schemas
-├── runners/           # Docker-based execution runners
-│   └── python/            # Python runner with sys.settrace
-└── docker-compose.yml
-```
-
-## Features (MVP v1)
-
-- **Python execution** with Docker isolation
-- **Line-by-line tracing** via `sys.settrace`
-- **Function invocation** with JSON arguments
-- **Playback controls** — step, play, pause, restart, timeline scrubber
-- **Variable inspector** — locals, globals, result
-- **Call stack viewer**
-- **Console output** — stdout, stderr, errors
-- **Data visualizations** — arrays, dictionaries, queues, stacks, recursion
-- **Local storage** — source code, sessions, playback position, settings
-- **Multi-language foundation** — `LanguageRunner` interface ready for JS, Java, C++
-
-## API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | API health check |
-| GET | `/api/languages` | List supported languages |
-| POST | `/api/execute` | Execute code with tracing |
-
-### Execute Request
-
-```json
-{
-  "source": "def add(a, b):\n    return a + b",
-  "language": "python",
-  "stdin": "",
-  "function_name": "add",
-  "function_args": [3, 4],
-  "trace": true
-}
-```
-
-## Running Tests
-
-```bash
-# API tests
-cd api && pytest -v
-
-# Frontend lint
-cd frontend && npm run lint
-```
-
-## Roadmap
-
-- JavaScript, Java, and C++ runners
-- Algorithm detection
-- Richer visualizations
-- AI explanations based on execution traces
-- Optional cloud sync with accounts
+| Feature | Technology |
+|---------|-----------|
+| UI | Next.js static site (GitHub Pages) |
+| Python | Pyodide (runs in browser) |
+| Storage | Browser local storage |
+| API (optional) | FastAPI + Docker for server-side execution |
 
 ## License
 

@@ -26,6 +26,7 @@ import {
 } from "./detectors/treeDpRecursionPatterns";
 import {
   CONFIDENCE_THRESHOLD,
+  MAX_DETECTED_PATTERNS,
   type DetectionContext,
   type PatternDetectionResult,
   type PatternDetector,
@@ -80,7 +81,7 @@ export class PatternRegistry {
       parsed,
     };
 
-    let best: PatternDetectionResult = { confidence: 0, pattern: null };
+    const matches: PatternDetectionResult["patterns"] = [];
 
     for (const detector of this.detectors) {
       if (
@@ -92,16 +93,29 @@ export class PatternRegistry {
 
       const result = detector.detect(context);
       const pattern = result.pattern ?? detector.name;
-      if (result.confidence > best.confidence) {
-        best = { confidence: result.confidence, pattern };
+      if (result.confidence >= CONFIDENCE_THRESHOLD && pattern) {
+        matches.push({ pattern, confidence: result.confidence });
       }
     }
 
-    if (best.confidence >= CONFIDENCE_THRESHOLD) {
-      return best;
+    matches.sort((a, b) => b.confidence - a.confidence);
+
+    const uniquePatterns: PatternDetectionResult["patterns"] = [];
+    const seen = new Set<string>();
+    for (const match of matches) {
+      if (seen.has(match.pattern)) continue;
+      seen.add(match.pattern);
+      uniquePatterns.push(match);
+      if (uniquePatterns.length >= MAX_DETECTED_PATTERNS) break;
     }
 
-    return { confidence: best.confidence, pattern: null };
+    const top = uniquePatterns[0] ?? null;
+
+    return {
+      confidence: top?.confidence ?? 0,
+      pattern: top?.pattern ?? null,
+      patterns: uniquePatterns,
+    };
   }
 }
 

@@ -1,6 +1,14 @@
 "use client";
 
 import type { TraceStep } from "@/types";
+import type { Theme } from "@/lib/theme";
+import { getThemeClasses } from "@/lib/theme";
+import {
+  getActiveArrayIndex,
+  getVisualizableVariables,
+  shouldShowRecursionTree,
+  toArrayItems,
+} from "@/lib/visualization";
 import ArrayViz from "./ArrayViz";
 import DictViz from "./DictViz";
 import QueueStackViz from "./QueueStackViz";
@@ -8,68 +16,81 @@ import RecursionViz from "./RecursionViz";
 
 interface DataVisualizationProps {
   step: TraceStep | null;
+  theme?: Theme;
 }
 
-export default function DataVisualization({ step }: DataVisualizationProps) {
+export default function DataVisualization({ step, theme = "dark" }: DataVisualizationProps) {
+  const t = getThemeClasses(theme);
+
   if (!step) {
     return (
-      <p className="text-sm text-zinc-500">
+      <p className={`text-sm ${t.subtext}`}>
         Run your code to see data structure visualizations.
       </p>
     );
   }
 
-  const allVars = { ...step.globals, ...step.locals };
-  const entries = Object.entries(allVars);
+  const items = getVisualizableVariables(step);
+  const showRecursion = shouldShowRecursionTree(step);
+  const activeIndex = getActiveArrayIndex(step);
 
-  if (entries.length === 0) {
-    return <p className="text-sm text-zinc-500">No data to visualize.</p>;
+  if (items.length === 0 && !showRecursion) {
+    return <p className={`text-sm ${t.subtext}`}>No data to visualize at this step.</p>;
   }
 
   return (
     <div className="space-y-4">
-      {entries.map(([name, value]) => (
-        <VisualizationItem key={name} name={name} value={value} stack={step.stack} />
-      ))}
-    </div>
-  );
-}
+      {showRecursion && <RecursionViz stack={step.stack} theme={theme} />}
 
-function VisualizationItem({
-  name,
-  value,
-  stack,
-}: {
-  name: string;
-  value: unknown;
-  stack: TraceStep["stack"];
-}) {
-  if (Array.isArray(value)) {
-    return <ArrayViz name={name} data={value} />;
-  }
-
-  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
-    return <DictViz name={name} data={value as Record<string, unknown>} />;
-  }
-
-  if (name.toLowerCase().includes("queue")) {
-    return <QueueStackViz name={name} type="queue" data={String(value)} />;
-  }
-
-  if (name.toLowerCase().includes("stack")) {
-    return <QueueStackViz name={name} type="stack" data={String(value)} />;
-  }
-
-  if (stack.length > 2) {
-    return <RecursionViz name={name} stack={stack} />;
-  }
-
-  return (
-    <div className="rounded-md border border-zinc-800 p-3">
-      <div className="mb-1 font-mono text-xs text-zinc-500">{name}</div>
-      <pre className="font-mono text-xs text-zinc-300">
-        {JSON.stringify(value, null, 2)}
-      </pre>
+      {items.map(({ name, type, value }) => {
+        switch (type) {
+          case "array":
+            return (
+              <ArrayViz
+                key={name}
+                name={name}
+                data={toArrayItems(value)}
+                highlightIndex={
+                  activeIndex !== undefined && activeIndex < toArrayItems(value).length
+                    ? activeIndex
+                    : undefined
+                }
+                theme={theme}
+              />
+            );
+          case "dict":
+            return (
+              <DictViz
+                key={name}
+                name={name}
+                data={value as Record<string, unknown>}
+                theme={theme}
+              />
+            );
+          case "queue":
+            return (
+              <QueueStackViz
+                key={name}
+                name={name}
+                type="queue"
+                items={toArrayItems(value)}
+                theme={theme}
+              />
+            );
+          case "stack":
+            return (
+              <QueueStackViz
+                key={name}
+                name={name}
+                type="stack"
+                items={toArrayItems(value)}
+                theme={theme}
+              />
+            );
+          default:
+            return null;
+        }
+      })}
     </div>
   );
 }

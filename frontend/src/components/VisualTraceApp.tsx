@@ -21,6 +21,7 @@ import {
   type RuntimeLoadStatus,
 } from "@/lib/browser-runner";
 import { getPreferredStepAfterRun, shouldResetPlaybackOnSourceChange } from "@/lib/playback";
+import { getFirstVisualizableStep } from "@/lib/visualization";
 import { getLanguageDisplayName } from "@/lib/runners/shared";
 import {
   EMPTY_FUNCTION_ARGS,
@@ -177,7 +178,10 @@ export default function VisualTraceApp() {
 
   const handleInspectorTabChange = (tab: InspectorTab) => {
     if (tab === "visualize" && inspectorTab !== "visualize" && (result?.trace.length ?? 0) > 0) {
-      resetPlaybackToStart();
+      const firstVizStep = getFirstVisualizableStep(result!.trace);
+      setCurrentStep(firstVizStep);
+      setPlaybackState("paused");
+      savePlaybackPosition(sessionIdRef.current, firstVizStep);
     }
     setInspectorTab(tab);
   };
@@ -584,6 +588,8 @@ export default function VisualTraceApp() {
               source={source}
               language={language}
               trace={result?.trace ?? []}
+              currentStep={currentStep}
+              totalSteps={totalSteps}
               stdout={displayStdout}
               stderr={displayStderr}
               error={result?.error ?? null}

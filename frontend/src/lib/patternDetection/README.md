@@ -20,7 +20,7 @@ patternDetection/
 1. `parseSource()` analyzes the user's code once (AST for JavaScript, regex/heuristics for other languages).
 2. Each registered detector scores the shared `DetectionContext` from `0.0` to `1.0`.
 3. `PatternRegistry` returns the highest-confidence match.
-4. If confidence is below `0.7`, the UI shows **Unknown / Generic Algorithm**.
+4. If confidence is below `0.55`, the UI shows **Unknown / Generic Algorithm**.
 
 Detectors combine:
 

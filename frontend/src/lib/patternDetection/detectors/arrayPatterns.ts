@@ -1,6 +1,7 @@
 import type { DetectionContext, PatternDetector } from "../Pattern";
 import {
   clampConfidence,
+  hasBinarySearchBounds,
   hasPointerPair,
   result,
   sourceMatches,
@@ -13,7 +14,8 @@ function detectTwoPointers(ctx: DetectionContext): number {
   let score = 0;
 
   if (parsed.identifiers.has("mid")) return 0;
-  if (sourceMatches(parsed, [/while\s+left\s*<=\s*right/])) return 0;
+  if (sourceMatches(parsed, [/while\s+left\s*<=\s*right/, /while\s+low\s*<=\s*high/])) return 0;
+  if (hasBinarySearchBounds(parsed.identifiers) && parsed.identifiers.has("mid")) return 0;
 
   if (hasPointerPair(parsed.identifiers)) score += 0.35;
   if (
@@ -60,19 +62,38 @@ function detectBinarySearch(ctx: DetectionContext): number {
   const { parsed, executionTrace } = ctx;
   let score = 0;
 
-  if (hasPointerPair(parsed.identifiers) && parsed.identifiers.has("mid")) score += 0.4;
+  const hasMid =
+    parsed.identifiers.has("mid") ||
+    parsed.identifiers.has("middle") ||
+    sourceMatches(parsed, [/\bmid\b/, /\bmiddle\b/]);
+
+  if (hasBinarySearchBounds(parsed.identifiers) && hasMid) score += 0.45;
+  if (
+    [...parsed.functionNames].some((name) => /search|bisect/i.test(name)) &&
+    hasMid
+  ) {
+    score += 0.35;
+  }
   if (
     sourceMatches(parsed, [
       /while\s+left\s*<=\s*right/,
-      /\bmid\s*=\s*\(?\s*\(?\s*left\s*\+\s*right\s*\)?\s*\/\s*2/,
+      /while\s+low\s*<=\s*high/,
+      /while\s+lo\s*<=\s*hi/,
+      /\bmid\s*=\s*\(?\s*\(?\s*(left|low|lo)\s*\+\s*(right|high|hi)\s*\)?\s*\/\s*2/,
       /\bmid\s*=\s*.*\/\/?\s*2/,
-      /math\.floor\s*\(\s*\(\s*left\s*\+\s*right\s*\)/,
+      /math\.floor\s*\(\s*\(\s*(left|low)\s*\+\s*(right|high)\s*\)/,
+      /nums\s*\[\s*mid\s*\]/,
       /binary\s*search/,
+      /bisect/,
     ])
   ) {
-    score += 0.45;
+    score += 0.4;
   }
-  if (traceHasLocals(executionTrace, ["left", "right", "mid"])) score += 0.2;
+  if (
+    traceHasLocals(executionTrace, ["left", "right", "mid", "low", "high", "lo", "hi"])
+  ) {
+    score += 0.15;
+  }
 
   return clampConfidence(score);
 }

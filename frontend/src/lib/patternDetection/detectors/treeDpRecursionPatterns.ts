@@ -39,9 +39,16 @@ function detectDp1D(ctx: DetectionContext): number {
     return 0;
   }
 
-  if (parsed.identifiers.has("dp")) score += 0.4;
-  if (sourceMatches(parsed, [/\bdp\s*\[/, /memo\s*=\s*\{/, /memo\s*=\s*\[/, /memoization/])) score += 0.35;
-  if (sourceMatches(parsed, [/for\s+.*\s+in\s+range\(len\(dp\)/, /dp\[i\]/])) score += 0.25;
+  const hasTableName = [...parsed.identifiers].some((name) =>
+    /^(dp|memo|cache|table)$/i.test(name)
+  );
+  if (hasTableName) score += 0.4;
+  if (sourceMatches(parsed, [/\b(dp|memo|cache)\s*\[/, /memoization/, /memo\s*=\s*[\[{]/])) {
+    score += 0.35;
+  }
+  if (sourceMatches(parsed, [/for\s+.*\s+in\s+range\(len\(dp\)/, /dp\[i\]/, /memo\[i\]/])) {
+    score += 0.2;
+  }
 
   return clampConfidence(score);
 }
@@ -50,27 +57,35 @@ function detectDp2D(ctx: DetectionContext): number {
   const { parsed } = ctx;
   let score = 0;
 
-  if (parsed.identifiers.has("dp") && sourceMatches(parsed, [/dp\s*\[\s*\w+\s*\]\s*\[\s*\w+\s*\]/, /dp\[i\]\[j\]/])) {
+  const hasTableName = [...parsed.identifiers].some((name) =>
+    /^(dp|memo|cache|table)$/i.test(name)
+  );
+  if (
+    hasTableName &&
+    sourceMatches(parsed, [/dp\s*\[\s*\w+\s*\]\s*\[\s*\w+\s*\]/, /dp\[i\]\[j\]/, /memo\[i\]\[j\]/])
+  ) {
     score += 0.75;
   }
-  if (sourceMatches(parsed, [/2d\s*dp/, /matrix/, /grid/]) && parsed.identifiers.has("dp")) score += 0.2;
+  if (sourceMatches(parsed, [/dynamic\s+programming/, /2d\s*dp/, /matrix/, /grid/]) && hasTableName) {
+    score += 0.2;
+  }
 
   return clampConfidence(score);
 }
 
 export const dp1dDetector: PatternDetector = {
-  name: "1D DP",
+  name: "1D Dynamic Programming",
   detect(ctx) {
     const confidence = detectDp1D(ctx);
-    return result(confidence, confidence > 0 ? "1D DP" : null);
+    return result(confidence, confidence > 0 ? "1D Dynamic Programming" : null);
   },
 };
 
 export const dp2dDetector: PatternDetector = {
-  name: "2D DP",
+  name: "2D Dynamic Programming",
   detect(ctx) {
     const confidence = detectDp2D(ctx);
-    return result(confidence, confidence > 0 ? "2D DP" : null);
+    return result(confidence, confidence > 0 ? "2D Dynamic Programming" : null);
   },
 };
 

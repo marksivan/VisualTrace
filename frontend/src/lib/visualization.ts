@@ -50,6 +50,19 @@ export function getVisualizableVariables(step: TraceStep | null): VizItem[] {
   return items;
 }
 
+/** First trace step that has something to render in the Visualize tab. */
+export function getFirstVisualizableStep(trace: TraceStep[]): number {
+  for (let i = 0; i < trace.length; i++) {
+    if (
+      getVisualizableVariables(trace[i]).length > 0 ||
+      shouldShowRecursionTree(trace[i])
+    ) {
+      return i;
+    }
+  }
+  return 0;
+}
+
 export function shouldShowRecursionTree(step: TraceStep | null): boolean {
   if (!step || step.stack.length < 2) return false;
 

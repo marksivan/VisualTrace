@@ -14,7 +14,7 @@ export interface PatternDetectionResult {
   pattern: string | null;
 }
 
-export const CONFIDENCE_THRESHOLD = 0.7;
+export const CONFIDENCE_THRESHOLD = 0.55;
 
 export const GENERIC_PATTERN_LABEL = "Unknown / Generic Algorithm";
 

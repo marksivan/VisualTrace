@@ -2,119 +2,87 @@
 
 Multi-language algorithm execution visualizer. Paste code, run it, and step through execution line by line to understand algorithms visually.
 
-## Architecture
+**No terminal required.** Open the website, write Python, and run — everything executes in your browser and saves to local storage.
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js, TypeScript, Monaco Editor, Tailwind CSS |
-| API | FastAPI (Python) |
-| Execution | Docker-isolated language runners |
-| Storage | Browser Local Storage (MVP) |
+## How to use (just open the webpage)
 
-## Quick Start
+### Live site (recommended)
 
-### Prerequisites
+After GitHub Pages is enabled, visit:
 
-- Node.js 20+
-- Python 3.12+
-- Docker (for isolated code execution)
+**https://marksivan.github.io/VisualTrace/**
 
-### Development (without Docker)
+That's it. No install, no API, no Docker.
+
+### Local preview (optional)
+
+If you want to preview before deploying:
 
 ```bash
-# API — uses local Python runner
-cd api
-pip install -r requirements.txt
-USE_DOCKER_RUNNER=false uvicorn app.main:app --reload --port 8000
-
-# Frontend
 cd frontend
 npm install
-npm run dev
+npm run build:pages
+npx serve out
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open **http://localhost:3000/VisualTrace/**
 
-### Full Stack (with Docker)
+## How it works
+
+| Feature | Technology |
+|---------|-----------|
+| UI | Next.js static site (GitHub Pages) |
+| Python execution | [Pyodide](https://pyodide.org/) — runs in your browser |
+| Code & sessions | Browser **local storage** (persists on your machine) |
+| Tracing | `sys.settrace` inside Pyodide |
+
+On first visit, the Python runtime downloads once (~10 MB). After that it loads from cache.
+
+Your code never leaves your browser unless you share it yourself.
+
+## What you can do
+
+- Edit Python in the Monaco code editor
+- Run with function name + JSON arguments (e.g. `two_sum` with `[[2,7,11,15], 9]`)
+- Step through execution line by line
+- Inspect variables, call stack, and console output
+- Visualize arrays, dictionaries, and recursion
+- Auto-save source code to local storage
+
+## Publish to GitHub Pages
+
+1. Merge to `main`
+2. Go to **Settings → Pages → Build and deployment**
+3. Set **Source** to **GitHub Actions**
+
+The workflow deploys automatically on every push to `main`.
+
+## Optional: API backend (advanced)
+
+The `api/` folder contains a FastAPI server for Docker-isolated execution. This is **optional** — the website works without it.
 
 ```bash
-# Build the Python runner image
-docker build -t visualtrace-python-runner ./runners/python
-
-# Start all services
-docker compose up --build
+cd api && pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
 ```
 
-## Project Structure
+Use the API only if you need server-side Docker sandboxing later.
+
+## Project structure
 
 ```
 visualtrace/
-├── frontend/          # Next.js app
-│   └── src/
-│       ├── components/    # UI components
-│       ├── lib/           # API client, local storage
-│       └── types/         # TypeScript types
-├── api/               # FastAPI backend
-│   └── app/
-│       ├── runners/       # LanguageRunner interface + PythonRunner
-│       ├── routers/       # API endpoints
-│       └── models/        # Pydantic schemas
-├── runners/           # Docker-based execution runners
-│   └── python/            # Python runner with sys.settrace
-└── docker-compose.yml
+├── .github/workflows/   # GitHub Pages deploy
+├── frontend/            # Static web app (Pyodide + local storage)
+├── api/                 # Optional FastAPI backend
+└── runners/python/      # Optional Docker runner
 ```
 
-## Features (MVP v1)
-
-- **Python execution** with Docker isolation
-- **Line-by-line tracing** via `sys.settrace`
-- **Function invocation** with JSON arguments
-- **Playback controls** — step, play, pause, restart, timeline scrubber
-- **Variable inspector** — locals, globals, result
-- **Call stack viewer**
-- **Console output** — stdout, stderr, errors
-- **Data visualizations** — arrays, dictionaries, queues, stacks, recursion
-- **Local storage** — source code, sessions, playback position, settings
-- **Multi-language foundation** — `LanguageRunner` interface ready for JS, Java, C++
-
-## API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | API health check |
-| GET | `/api/languages` | List supported languages |
-| POST | `/api/execute` | Execute code with tracing |
-
-### Execute Request
-
-```json
-{
-  "source": "def add(a, b):\n    return a + b",
-  "language": "python",
-  "stdin": "",
-  "function_name": "add",
-  "function_args": [3, 4],
-  "trace": true
-}
-```
-
-## Running Tests
+## Running tests
 
 ```bash
-# API tests
-cd api && pytest -v
-
-# Frontend lint
-cd frontend && npm run lint
+cd api && python3 -m pytest -v
 ```
-
-## Roadmap
-
-- JavaScript, Java, and C++ runners
-- Algorithm detection
-- Richer visualizations
-- AI explanations based on execution traces
-- Optional cloud sync with accounts
 
 ## License
 

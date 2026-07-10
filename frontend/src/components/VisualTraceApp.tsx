@@ -1,14 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Activity } from "lucide-react";
+import { Activity, Loader2 } from "lucide-react";
 import CodeEditor from "@/components/CodeEditor";
 import LanguageSelector from "@/components/LanguageSelector";
 import TestInput from "@/components/TestInput";
 import ExecutionControls from "@/components/ExecutionControls";
 import PlaybackControls from "@/components/PlaybackControls";
 import Inspector from "@/components/Inspector";
-import { executeCode, getLanguages } from "@/lib/api";
+import {
+  BROWSER_LANGUAGES,
+  executeInBrowser,
+  preloadPythonRuntime,
+} from "@/lib/browser-runner";
 import {
   loadSettings,
   loadSource,
@@ -25,7 +29,7 @@ import type {
 } from "@/types";
 
 export default function VisualTraceApp() {
-  const [languages, setLanguages] = useState<LanguageInfo[]>([]);
+  const [languages] = useState<LanguageInfo[]>(BROWSER_LANGUAGES);
   const [language, setLanguage] = useState<Language>("python");
   const [source, setSource] = useState(() => loadSource("python"));
   const [stdin, setStdin] = useState("");
@@ -35,22 +39,18 @@ export default function VisualTraceApp() {
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle");
-  const [apiStatus, setApiStatus] = useState<"connected" | "disconnected" | "checking">("checking");
+  const [runtimeStatus, setRuntimeStatus] = useState<"loading" | "ready" | "error">("loading");
   const [showTestInput, setShowTestInput] = useState(true);
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const sessionIdRef = useRef(crypto.randomUUID());
+  const sessionIdRef = useRef(
+    typeof crypto !== "undefined" ? crypto.randomUUID() : "session-local"
+  );
   const settings = loadSettings();
 
   useEffect(() => {
-    getLanguages()
-      .then(setLanguages)
-      .catch(() =>
-        setLanguages([{ id: "python", name: "Python", enabled: true }])
-      );
-
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/health`)
-      .then((r) => (r.ok ? setApiStatus("connected") : setApiStatus("disconnected")))
-      .catch(() => setApiStatus("disconnected"));
+    preloadPythonRuntime()
+      .then(() => setRuntimeStatus("ready"))
+      .catch(() => setRuntimeStatus("error"));
   }, []);
 
   const handleSourceChange = useCallback(
@@ -71,6 +71,8 @@ export default function VisualTraceApp() {
   };
 
   const handleRun = async () => {
+    if (runtimeStatus !== "ready") return;
+
     setIsRunning(true);
     setResult(null);
     setCurrentStep(0);
@@ -95,7 +97,7 @@ export default function VisualTraceApp() {
     }
 
     try {
-      const execResult = await executeCode({
+      const execResult = await executeInBrowser({
         source,
         language,
         stdin,
@@ -204,20 +206,30 @@ export default function VisualTraceApp() {
         <div className="flex items-center gap-3">
           <Activity className="h-5 w-5 text-blue-500" />
           <h1 className="text-lg font-semibold tracking-tight">VisualTrace</h1>
-          <span className="text-xs text-zinc-600">Algorithm Visualizer</span>
+          <span className="text-xs text-zinc-600">Runs in your browser · saved to local storage</span>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
+            {runtimeStatus === "loading" && (
+              <Loader2 className="h-3 w-3 animate-spin text-yellow-500" />
+            )}
             <div
               className={`h-2 w-2 rounded-full ${
-                apiStatus === "connected"
+                runtimeStatus === "ready"
                   ? "bg-green-500"
-                  : apiStatus === "checking"
+                  : runtimeStatus === "loading"
                     ? "bg-yellow-500"
                     : "bg-red-500"
               }`}
             />
-            <span className="text-xs text-zinc-500">API</span>
+            <span className="text-xs text-zinc-500">
+              Python{" "}
+              {runtimeStatus === "ready"
+                ? "ready"
+                : runtimeStatus === "loading"
+                  ? "loading..."
+                  : "failed"}
+            </span>
           </div>
           <LanguageSelector
             languages={languages}

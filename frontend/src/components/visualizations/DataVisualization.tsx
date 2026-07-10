@@ -1,8 +1,10 @@
 "use client";
 
-import type { TraceStep } from "@/types";
+import { useMemo } from "react";
+import type { Language, TraceStep } from "@/types";
 import type { Theme } from "@/lib/theme";
 import { getThemeClasses } from "@/lib/theme";
+import { detectPattern } from "@/lib/patternDetection";
 import {
   getActiveArrayIndex,
   getVisualizableVariables,
@@ -13,6 +15,7 @@ import {
   toArrayItems,
 } from "@/lib/visualization";
 import ArrayViz from "./ArrayViz";
+import DetectedPattern from "./DetectedPattern";
 import DictViz from "./DictViz";
 import GraphViz from "./GraphViz";
 import LinkedListViz from "./LinkedListViz";
@@ -22,24 +25,37 @@ import TreeViz from "./TreeViz";
 
 interface DataVisualizationProps {
   step: TraceStep | null;
+  source: string;
+  language: Language;
+  trace: TraceStep[];
   hasRun?: boolean;
   theme?: Theme;
 }
 
 export default function DataVisualization({
   step,
+  source,
+  language,
+  trace,
   hasRun = false,
   theme = "dark",
 }: DataVisualizationProps) {
   const t = getThemeClasses(theme);
+  const detection = useMemo(
+    () => (hasRun ? detectPattern(source, language, trace) : null),
+    [hasRun, source, language, trace]
+  );
 
   if (!step) {
     return (
-      <p className={`text-sm ${t.subtext}`}>
-        {hasRun
-          ? "No specialized visualization detected. Variable and call-stack tracing are still available."
-          : "Run your code to see data structure visualizations."}
-      </p>
+      <div className="space-y-4">
+        {hasRun && <DetectedPattern detection={detection} theme={theme} />}
+        <p className={`text-sm ${t.subtext}`}>
+          {hasRun
+            ? "No specialized visualization detected. Variable and call-stack tracing are still available."
+            : "Run your code to see data structure visualizations."}
+        </p>
+      </div>
     );
   }
 
@@ -49,15 +65,19 @@ export default function DataVisualization({
 
   if (items.length === 0 && !showRecursion) {
     return (
-      <p className={`text-sm ${t.subtext}`}>
-        No specialized visualization detected. Variable and call-stack tracing are
-        still available.
-      </p>
+      <div className="space-y-4">
+        <DetectedPattern detection={detection} theme={theme} />
+        <p className={`text-sm ${t.subtext}`}>
+          No specialized visualization detected. Variable and call-stack tracing are
+          still available.
+        </p>
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      <DetectedPattern detection={detection} theme={theme} />
       {showRecursion && <RecursionViz stack={step.stack} theme={theme} />}
 
       {items.map(({ name, type, value }) => {

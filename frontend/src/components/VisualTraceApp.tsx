@@ -581,6 +581,9 @@ export default function VisualTraceApp() {
           <div className="flex-1 overflow-hidden">
             <Inspector
               step={currentTraceStep}
+              source={source}
+              language={language}
+              trace={result?.trace ?? []}
               stdout={displayStdout}
               stderr={displayStderr}
               error={result?.error ?? null}

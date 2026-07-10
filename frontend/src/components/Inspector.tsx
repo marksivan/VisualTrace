@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { InspectorTab } from "@/types";
+import type { InspectorTab, Language, TraceStep } from "@/types";
 import { INSPECTOR_TAB_ORDER } from "@/types";
-import type { TraceStep } from "@/types";
 import {
   formatValueForDisplay,
   getInspectableVariables,
@@ -16,6 +15,9 @@ import DataVisualization from "./visualizations/DataVisualization";
 
 interface InspectorProps {
   step: TraceStep | null;
+  source: string;
+  language: Language;
+  trace: TraceStep[];
   stdout: string;
   stderr: string;
   error: string | null;
@@ -26,6 +28,9 @@ interface InspectorProps {
 
 export default function Inspector({
   step,
+  source,
+  language,
+  trace,
   stdout,
   stderr,
   error,
@@ -75,7 +80,14 @@ export default function Inspector({
           <ConsolePanel stdout={stdout} stderr={stderr} error={error} theme={theme} />
         )}
         {activeTab === "visualize" && (
-          <DataVisualization step={step} hasRun={!!step || !!stdout || !!stderr || !!error} theme={theme} />
+          <DataVisualization
+            step={step}
+            source={source}
+            language={language}
+            trace={trace}
+            hasRun={!!step || !!stdout || !!stderr || !!error}
+            theme={theme}
+          />
         )}
         {activeTab === "variables" && (
           <VariablesPanel step={step} stepResult={stepResult} theme={theme} />

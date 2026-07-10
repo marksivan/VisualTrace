@@ -2,99 +2,83 @@
 
 Multi-language algorithm execution visualizer. Paste code, run it, and step through execution line by line to understand algorithms visually.
 
-## Architecture
+**No terminal required.** Open the website, write Python, and run — everything executes in your browser and saves to local storage.
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js, TypeScript, Tailwind CSS |
-| API | FastAPI (Python) |
-| Execution | Docker-isolated language runners |
-| Storage | Browser Local Storage (planned) |
+## How to use (just open the webpage)
 
-## Milestone 1 — Project Setup
+### Live site (recommended)
 
-This milestone establishes:
-
-- Monorepo structure (`frontend/`, `api/`, `runners/`)
-- Next.js frontend scaffold with VisualTrace branding
-- FastAPI backend with `/health` endpoint
-- Docker Compose configuration for local development
-- API health check test
-
-## Quick Start
-
-### Development
-
-```bash
-# API
-cd api
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-
-# Frontend (separate terminal)
-cd frontend
-npm install
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000). The landing page shows API connection status.
-
-### Publish to GitHub Pages
-
-The frontend is a **static site** and deploys automatically when changes merge to `main`.
-
-**One-time setup in your GitHub repo:**
-
-1. Go to **Settings → Pages**
-2. Under **Build and deployment**, set **Source** to **GitHub Actions**
-
-After the first merge to `main`, the workflow publishes the site to:
+After GitHub Pages is enabled, visit:
 
 **https://marksivan.github.io/VisualTrace/**
 
-To preview the production build locally:
+That's it. No install, no API, no Docker.
+
+### Local preview (optional)
+
+If you want to preview before deploying:
 
 ```bash
 cd frontend
+npm install
 npm run build:pages
 npx serve out
 ```
 
-Then open `http://localhost:3000/VisualTrace/`.
+Open **http://localhost:3000/VisualTrace/**
 
-> **Note:** GitHub Pages hosts the frontend only. The FastAPI backend must run locally or on a separate host. Set `NEXT_PUBLIC_API_URL` at build time if you deploy the API elsewhere.
+## How it works
 
-### Docker
+| Feature | Technology |
+|---------|-----------|
+| UI | Next.js static site (GitHub Pages) |
+| Python execution | [Pyodide](https://pyodide.org/) — runs in your browser |
+| Code & sessions | Browser **local storage** (persists on your machine) |
+| Tracing | `sys.settrace` inside Pyodide |
+
+On first visit, the Python runtime downloads once (~10 MB). After that it loads from cache.
+
+Your code never leaves your browser unless you share it yourself.
+
+## What you can do
+
+- Edit Python in the Monaco code editor
+- Run with function name + JSON arguments (e.g. `two_sum` with `[[2,7,11,15], 9]`)
+- Step through execution line by line
+- Inspect variables, call stack, and console output
+- Visualize arrays, dictionaries, and recursion
+- Auto-save source code to local storage
+
+## Publish to GitHub Pages
+
+1. Merge to `main`
+2. Go to **Settings → Pages → Build and deployment**
+3. Set **Source** to **GitHub Actions**
+
+The workflow deploys automatically on every push to `main`.
+
+## Optional: API backend (advanced)
+
+The `api/` folder contains a FastAPI server for Docker-isolated execution. This is **optional** — the website works without it.
 
 ```bash
-docker compose up --build
+cd api && pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
 ```
 
-## Project Structure
+Use the API only if you need server-side Docker sandboxing later.
+
+## Project structure
 
 ```
 visualtrace/
-├── .github/workflows/ # GitHub Pages deploy workflow
-├── frontend/          # Next.js static site
-├── api/               # FastAPI backend
-│   └── app/routers/   # Health endpoint
-├── runners/python/    # Docker runner (placeholder until Milestone 3)
-└── docker-compose.yml
+├── .github/workflows/   # GitHub Pages deploy
+├── frontend/            # Static web app (Pyodide + local storage)
+├── api/                 # Optional FastAPI backend
+└── runners/python/      # Optional Docker runner
 ```
 
-## Upcoming Milestones
-
-2. Editor — Monaco, language selector, test input, execution controls
-3. Execution — Docker Python runner
-4. Function Calls — JSON arguments and invocation
-5. Tracing — Line-by-line `sys.settrace`
-6. Playback — Step controls and timeline
-7. Inspector — Variables, console, call stack
-8. Visualizations — Arrays, dicts, queues, stacks, recursion
-9. Multi-language — `LanguageRunner` interface
-10. Polish — UX, tests, documentation
-
-## Running Tests
+## Running tests
 
 ```bash
 cd api && python3 -m pytest -v

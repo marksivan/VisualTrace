@@ -21,9 +21,8 @@ import {
 import { getPreferredStepAfterRun, shouldResetPlaybackOnSourceChange } from "@/lib/playback";
 import { getLanguageDisplayName } from "@/lib/runners/shared";
 import {
-  DEFAULT_FUNCTION_ARGS,
-  getDefaultFunctionName,
-  getDefaultSource,
+  EMPTY_FUNCTION_ARGS,
+  getEmptySource,
   loadFunctionArgs,
   loadFunctionName,
   loadSettings,
@@ -176,13 +175,12 @@ export default function VisualTraceApp() {
   const handleResetConfirm = () => {
     setShowResetConfirm(false);
 
-    const defaultSource = getDefaultSource(language, executionMode);
-    const defaultFunctionName = getDefaultFunctionName(language);
+    const emptySource = getEmptySource(language, executionMode);
 
-    setSource(defaultSource);
+    setSource(emptySource);
     setStdin("");
-    setFunctionName(defaultFunctionName);
-    setFunctionArgs(DEFAULT_FUNCTION_ARGS);
+    setFunctionName("");
+    setFunctionArgs(EMPTY_FUNCTION_ARGS);
     setResult(null);
     lastRunSourceRef.current = null;
     setCurrentStep(0);
@@ -190,9 +188,9 @@ export default function VisualTraceApp() {
     setInspectorTab("console");
 
     if (settings.autoSave) {
-      saveSource(language, defaultSource, executionMode);
-      saveFunctionName(language, defaultFunctionName);
-      saveFunctionArgs(language, DEFAULT_FUNCTION_ARGS);
+      saveSource(language, emptySource, executionMode);
+      saveFunctionName(language, "");
+      saveFunctionArgs(language, EMPTY_FUNCTION_ARGS);
     }
     savePlaybackPosition(sessionIdRef.current, 0);
   };
@@ -470,7 +468,7 @@ export default function VisualTraceApp() {
               <button
                 onClick={handleResetClick}
                 className="flex items-center gap-1.5 rounded-md border border-amber-600/60 bg-amber-600/15 px-3 py-1.5 text-xs font-semibold text-amber-600 hover:bg-amber-600/25 dark:border-amber-500/60 dark:bg-amber-500/15 dark:text-amber-400 dark:hover:bg-amber-500/25"
-                title="Reset editor and inputs to the two sum example"
+                title="Clear editor, inputs, and run results"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 Reset
@@ -546,9 +544,9 @@ export default function VisualTraceApp() {
 
       <ConfirmDialog
         open={showResetConfirm}
-        title="Reset to example?"
-        message="This will replace your current code, inputs, and run results with the default two sum example for the selected language."
-        confirmLabel="Reset"
+        title="Clear editor?"
+        message="This will replace your current code, inputs, and run results with an empty script for the selected language."
+        confirmLabel="Clear"
         theme={theme}
         onConfirm={handleResetConfirm}
         onCancel={handleResetCancel}

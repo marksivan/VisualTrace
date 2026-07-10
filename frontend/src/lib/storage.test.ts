@@ -13,7 +13,7 @@ describe("storage defaults", () => {
     expect(getEmptySource("javascript", "function")).toBe("");
   });
 
-  it("returns two sum example for reset defaults", () => {
+  it("returns two sum example as optional template defaults", () => {
     expect(getDefaultSource("python", "script")).toContain("two_sum");
     expect(getDefaultSource("javascript", "function")).toContain("twoSum");
     expect(getDefaultFunctionName("javascript")).toBe("twoSum");

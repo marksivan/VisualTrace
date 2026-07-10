@@ -467,7 +467,7 @@ export default function VisualTraceApp() {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleResetClick}
-                className="flex items-center gap-1.5 rounded-md border border-amber-600/60 bg-amber-600/15 px-3 py-1.5 text-xs font-semibold text-amber-600 hover:bg-amber-600/25 dark:border-amber-500/60 dark:bg-amber-500/15 dark:text-amber-400 dark:hover:bg-amber-500/25"
+                className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium ${t.resetBtn}`}
                 title="Clear editor, inputs, and run results"
               >
                 <RotateCcw className="h-3.5 w-3.5" />

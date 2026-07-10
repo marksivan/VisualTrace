@@ -162,6 +162,15 @@ export function getDefaultFunctionName(language: Language): string {
 
 export const DEFAULT_FUNCTION_ARGS = "[[2, 7, 11, 15], 9]";
 
+export const EMPTY_FUNCTION_ARGS = "[]";
+
+export function getEmptySource(
+  _language: Language,
+  _mode: ExecutionMode = "script"
+): string {
+  return "";
+}
+
 export function getDefaultSource(
   language: Language,
   mode: ExecutionMode = "script"
@@ -192,7 +201,7 @@ export function loadSource(
   language: Language,
   mode: ExecutionMode = "script"
 ): string {
-  if (typeof window === "undefined") return getDefaultSource(language, mode);
+  if (typeof window === "undefined") return getEmptySource(language, mode);
 
   const key = STORAGE_KEYS.source(language, mode);
   const stored = localStorage.getItem(key);
@@ -207,7 +216,7 @@ export function loadSource(
     }
   }
 
-  return getDefaultSource(language, mode);
+  return getEmptySource(language, mode);
 }
 
 export function saveSource(
@@ -220,11 +229,9 @@ export function saveSource(
 }
 
 export function loadFunctionName(language: Language): string {
-  if (typeof window === "undefined") return getDefaultFunctionName(language);
-  return (
-    localStorage.getItem(STORAGE_KEYS.functionName(language)) ||
-    getDefaultFunctionName(language)
-  );
+  if (typeof window === "undefined") return "";
+  const stored = localStorage.getItem(STORAGE_KEYS.functionName(language));
+  return stored ?? "";
 }
 
 export function saveFunctionName(language: Language, name: string): void {
@@ -233,11 +240,9 @@ export function saveFunctionName(language: Language, name: string): void {
 }
 
 export function loadFunctionArgs(language: Language): string {
-  if (typeof window === "undefined") return DEFAULT_FUNCTION_ARGS;
-  return (
-    localStorage.getItem(STORAGE_KEYS.functionArgs(language)) ||
-    DEFAULT_FUNCTION_ARGS
-  );
+  if (typeof window === "undefined") return EMPTY_FUNCTION_ARGS;
+  const stored = localStorage.getItem(STORAGE_KEYS.functionArgs(language));
+  return stored ?? EMPTY_FUNCTION_ARGS;
 }
 
 export function saveFunctionArgs(language: Language, args: string): void {

@@ -9,6 +9,7 @@ import ExecutionControls from "@/components/ExecutionControls";
 import PlaybackControls from "@/components/PlaybackControls";
 import Inspector from "@/components/Inspector";
 import ThemeToggle from "@/components/ThemeToggle";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import CopyrightFooter from "@/components/CopyrightFooter";
 import {
   BROWSER_LANGUAGES,
@@ -69,6 +70,7 @@ export default function VisualTraceApp() {
   const [cppStatus, setCppStatus] = useState<RuntimeLoadStatus>("loading");
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const [showTestInput, setShowTestInput] = useState(true);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("console");
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastRunSourceRef = useRef<string | null>(null);
@@ -180,11 +182,12 @@ export default function VisualTraceApp() {
     setInspectorTab(tab);
   };
 
-  const handleRefresh = () => {
-    const confirmed = window.confirm(
-      "Reset the editor, inputs, and run results to defaults? Your current code and output will be cleared."
-    );
-    if (!confirmed) return;
+  const handleResetClick = () => {
+    setShowResetConfirm(true);
+  };
+
+  const handleResetConfirm = () => {
+    setShowResetConfirm(false);
 
     const defaultSource = getDefaultSource(language, executionMode);
     const defaultFunctionName = getDefaultFunctionName(language);
@@ -205,6 +208,10 @@ export default function VisualTraceApp() {
       saveFunctionArgs(language, DEFAULT_FUNCTION_ARGS);
     }
     savePlaybackPosition(sessionIdRef.current, 0);
+  };
+
+  const handleResetCancel = () => {
+    setShowResetConfirm(false);
   };
 
   const handleRun = async () => {
@@ -475,11 +482,11 @@ export default function VisualTraceApp() {
             <span className={`text-xs font-medium ${t.label}`}>Editor</span>
             <div className="flex items-center gap-2">
               <button
-                onClick={handleRefresh}
-                className={`flex items-center gap-1 text-xs ${t.subtext} hover:opacity-80`}
-                title="Reset editor and inputs to defaults"
+                onClick={handleResetClick}
+                className="flex items-center gap-1.5 rounded-md border border-amber-600/60 bg-amber-600/15 px-3 py-1.5 text-xs font-semibold text-amber-600 hover:bg-amber-600/25 dark:border-amber-500/60 dark:bg-amber-500/15 dark:text-amber-400 dark:hover:bg-amber-500/25"
+                title="Reset editor and inputs to the two sum example"
               >
-                <RotateCcw className="h-3 w-3" />
+                <RotateCcw className="h-3.5 w-3.5" />
                 Reset
               </button>
               <button
@@ -550,6 +557,16 @@ export default function VisualTraceApp() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showResetConfirm}
+        title="Reset to example?"
+        message="This will replace your current code, inputs, and run results with the default two sum example for the selected language."
+        confirmLabel="Reset"
+        theme={theme}
+        onConfirm={handleResetConfirm}
+        onCancel={handleResetCancel}
+      />
 
       <CopyrightFooter theme={theme} />
     </div>

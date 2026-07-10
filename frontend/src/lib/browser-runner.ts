@@ -212,11 +212,11 @@ def run_traced_code(source, stdin_data, function_name, function_args_json, enabl
 const RUN_CODE = `
 import json
 json.dumps(run_traced_code(
-    __vt_source__,
-    __vt_stdin__,
-    __vt_function_name__,
-    __vt_function_args_json__,
-    __vt_trace__,
+    __vt_source,
+    __vt_stdin,
+    __vt_function_name,
+    __vt_function_args_json,
+    __vt_trace,
 ))
 `;
 

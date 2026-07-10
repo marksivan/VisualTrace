@@ -5,8 +5,12 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - PYTHON_RUNNER_IMAGE=visualtrace-python-runner
+    depends_on:
+      - python-runner-build
 
   python-runner-build:
     build:

@@ -5,7 +5,9 @@ WORKDIR /runner
 RUN useradd -m -u 1000 runner && chown -R runner:runner /runner
 USER runner
 
-# Runner script will be added in Milestone 3 (Execution)
-COPY --chown=runner:runner . .
+COPY --chown=runner:runner requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["echo", "VisualTrace Python runner placeholder"]
+COPY --chown=runner:runner runner.py .
+
+ENTRYPOINT ["python", "runner.py"]

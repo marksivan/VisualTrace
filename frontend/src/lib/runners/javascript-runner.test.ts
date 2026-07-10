@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { getPreferredStepAfterRun } from "@/lib/playback";
+import { getVisualizableVariables, hasVisualizableTrace } from "@/lib/visualization";
 import { instrumentJavaScript } from "./javascript-instrument";
 import { executeJavaScriptInBrowser } from "./javascript-runner";
 import { serializeValue } from "./shared";
@@ -52,6 +54,31 @@ console.log(result);`,
     expect(result.stdout.trim()).toBe("6");
     expect(result.result).toBe(6);
     expect(result.trace.length).toBeGreaterThan(0);
+  });
+
+  it("keeps visualizable trace data in script mode even with stdout", () => {
+    const result = executeJavaScriptInBrowser({
+      source: `function walk(text) {
+  let left = 0;
+  let right = text.length - 1;
+  while (left < right) {
+    left += 1;
+    right -= 1;
+  }
+}
+const result = walk("racecar");
+console.log("done");`,
+      language: "javascript",
+      stdin: "",
+      trace: true,
+    });
+
+    expect(result.error).toBeNull();
+    expect(hasVisualizableTrace(result.trace)).toBe(true);
+    expect(
+      getVisualizableVariables(result.trace[getPreferredStepAfterRun(result.trace)])
+        .some((item) => item.name === "text")
+    ).toBe(true);
   });
 
   it("runs function mode via wrapper", () => {

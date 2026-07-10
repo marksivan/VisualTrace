@@ -40,10 +40,11 @@ describe("shouldResetPlaybackOnSourceChange", () => {
 });
 
 describe("getPreferredStepAfterRun", () => {
-  it("prefers the last step with locals", () => {
+  it("prefers the last visualizable step", () => {
     const trace = [
       makeStep({ step: 0, locals: {} }),
-      makeStep({ step: 1, locals: { a: 1 } }),
+      makeStep({ step: 1, locals: { nums: [1, 2, 3] } }),
+      makeStep({ step: 2, locals: { x: 1 } }),
     ];
     expect(getPreferredStepAfterRun(trace)).toBe(1);
   });

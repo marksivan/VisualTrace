@@ -21,17 +21,12 @@ import {
   type RuntimeLoadStatus,
 } from "@/lib/browser-runner";
 import { getPreferredStepAfterRun, shouldResetPlaybackOnSourceChange } from "@/lib/playback";
-import { getFirstVisualizableStep } from "@/lib/visualization";
+import { getLastVisualizableStep, hasVisualizableTrace, stepHasVisualization } from "@/lib/visualization";
 import { getLanguageDisplayName } from "@/lib/runners/shared";
 import {
-  EMPTY_FUNCTION_ARGS,
   getEmptySource,
-  loadFunctionArgs,
-  loadFunctionName,
   loadSettings,
   loadSource,
-  saveFunctionArgs,
-  saveFunctionName,
   saveSession,
   saveSource,
   savePlaybackPosition,
@@ -40,7 +35,6 @@ import {
 import { getThemeClasses, type Theme } from "@/lib/theme";
 import type {
   AppSettings,
-  ExecutionMode,
   ExecutionResult,
   InspectorTab,
   Language,
@@ -53,15 +47,8 @@ export default function VisualTraceApp() {
   const [languages] = useState<LanguageInfo[]>(BROWSER_LANGUAGES);
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const [language, setLanguage] = useState<Language>("python");
-  const [executionMode, setExecutionMode] = useState<ExecutionMode>(
-    () => loadSettings().executionMode
-  );
-  const [source, setSource] = useState(() =>
-    loadSource("python", loadSettings().executionMode)
-  );
+  const [source, setSource] = useState(() => loadSource("python"));
   const [stdin, setStdin] = useState("");
-  const [functionName, setFunctionName] = useState(() => loadFunctionName("python"));
-  const [functionArgs, setFunctionArgs] = useState(() => loadFunctionArgs("python"));
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
@@ -126,9 +113,9 @@ export default function VisualTraceApp() {
         resetPlaybackToStart();
       }
       setSource(value);
-      if (settings.autoSave) saveSource(language, value, executionMode);
+      if (settings.autoSave) saveSource(language, value);
     },
-    [language, executionMode, settings.autoSave, result, resetPlaybackToStart]
+    [language, settings.autoSave, result, resetPlaybackToStart]
   );
 
   const handleThemeToggle = () => {
@@ -138,50 +125,26 @@ export default function VisualTraceApp() {
     saveSettings(updated);
   };
 
-  const handleExecutionModeChange = (mode: ExecutionMode) => {
-    saveSource(language, source, executionMode);
-    setExecutionMode(mode);
-    const updated = { ...settings, executionMode: mode };
-    setSettings(updated);
-    saveSettings(updated);
-    setSource(loadSource(language, mode));
-    setResult(null);
-    lastRunSourceRef.current = null;
-    setCurrentStep(0);
-    setPlaybackState("idle");
-  };
-
   const handleLanguageChange = (langId: string) => {
-    saveSource(language, source, executionMode);
-    saveFunctionName(language, functionName);
-    saveFunctionArgs(language, functionArgs);
+    saveSource(language, source);
     const nextLanguage = langId as Language;
     setLanguage(nextLanguage);
-    setSource(loadSource(nextLanguage, executionMode));
-    setFunctionName(loadFunctionName(nextLanguage));
-    setFunctionArgs(loadFunctionArgs(nextLanguage));
+    setSource(loadSource(nextLanguage));
     setResult(null);
     lastRunSourceRef.current = null;
     setCurrentStep(0);
     setPlaybackState("idle");
-  };
-
-  const handleFunctionNameChange = (value: string) => {
-    setFunctionName(value);
-    saveFunctionName(language, value);
-  };
-
-  const handleFunctionArgsChange = (value: string) => {
-    setFunctionArgs(value);
-    saveFunctionArgs(language, value);
   };
 
   const handleInspectorTabChange = (tab: InspectorTab) => {
     if (tab === "visualize" && inspectorTab !== "visualize" && (result?.trace.length ?? 0) > 0) {
-      const firstVizStep = getFirstVisualizableStep(result!.trace);
-      setCurrentStep(firstVizStep);
+      const trace = result!.trace;
+      const visualizableStep = stepHasVisualization(trace[currentStep])
+        ? currentStep
+        : getLastVisualizableStep(trace);
+      setCurrentStep(visualizableStep);
       setPlaybackState("paused");
-      savePlaybackPosition(sessionIdRef.current, firstVizStep);
+      savePlaybackPosition(sessionIdRef.current, visualizableStep);
     }
     setInspectorTab(tab);
   };
@@ -193,12 +156,10 @@ export default function VisualTraceApp() {
   const handleResetConfirm = () => {
     setShowResetConfirm(false);
 
-    const emptySource = getEmptySource(language, executionMode);
+    const emptySource = getEmptySource(language);
 
     setSource(emptySource);
     setStdin("");
-    setFunctionName("");
-    setFunctionArgs(EMPTY_FUNCTION_ARGS);
     setResult(null);
     lastRunSourceRef.current = null;
     setCurrentStep(0);
@@ -206,9 +167,7 @@ export default function VisualTraceApp() {
     setInspectorTab("console");
 
     if (settings.autoSave) {
-      saveSource(language, emptySource, executionMode);
-      saveFunctionName(language, "");
-      saveFunctionArgs(language, EMPTY_FUNCTION_ARGS);
+      saveSource(language, emptySource);
     }
     savePlaybackPosition(sessionIdRef.current, 0);
   };
@@ -264,63 +223,11 @@ export default function VisualTraceApp() {
     setCurrentStep(0);
     setPlaybackState("idle");
 
-    const useFunctionMode = executionMode === "function";
-    let parsedArgs: unknown[] = [];
-
-    if (useFunctionMode) {
-      if (!functionName.trim()) {
-        setResult({
-          stdout: "",
-          stderr: "",
-          result: null,
-          error: "Function mode requires a function name.",
-          trace: [],
-        });
-        setIsRunning(false);
-        setInspectorTab("console");
-        setMobilePanel("inspector");
-        return;
-      }
-
-      if (!functionArgs.trim()) {
-        setResult({
-          stdout: "",
-          stderr: "",
-          result: null,
-          error: "Function mode requires function arguments as JSON.",
-          trace: [],
-        });
-        setIsRunning(false);
-        setInspectorTab("console");
-        setMobilePanel("inspector");
-        return;
-      }
-
-      try {
-        const parsed = JSON.parse(functionArgs);
-        parsedArgs = Array.isArray(parsed) ? parsed : [parsed];
-      } catch {
-        setResult({
-          stdout: "",
-          stderr: "",
-          result: null,
-          error: "Invalid JSON in function arguments",
-          trace: [],
-        });
-        setIsRunning(false);
-        setInspectorTab("console");
-        setMobilePanel("inspector");
-        return;
-      }
-    }
-
     try {
       const execResult = await executeInBrowser({
         source,
         language,
         stdin,
-        function_name: useFunctionMode ? functionName.trim() : undefined,
-        function_args: useFunctionMode ? parsedArgs : undefined,
         trace: true,
       });
 
@@ -331,21 +238,20 @@ export default function VisualTraceApp() {
       setCurrentStep(initialStep);
       setPlaybackState(execResult.trace.length > 0 ? "paused" : "finished");
 
-      if (execResult.error || execResult.stdout || execResult.stderr) {
+      if (execResult.error || execResult.stderr) {
         setInspectorTab("console");
-      } else {
+      } else if (hasVisualizableTrace(execResult.trace)) {
         setInspectorTab("visualize");
+      } else {
+        setInspectorTab("console");
       }
       setMobilePanel("inspector");
 
       saveSession({
         id: sessionIdRef.current,
         language,
-        executionMode,
         source,
         stdin,
-        functionName,
-        functionArgs,
         createdAt: new Date().toISOString(),
         result: execResult,
         playbackPosition: initialStep,
@@ -535,14 +441,8 @@ export default function VisualTraceApp() {
           {showTestInput && (
             <div className={`border-b ${t.panel}`}>
               <TestInput
-                executionMode={executionMode}
-                onExecutionModeChange={handleExecutionModeChange}
                 stdin={stdin}
                 onStdinChange={setStdin}
-                functionName={functionName}
-                onFunctionNameChange={handleFunctionNameChange}
-                functionArgs={functionArgs}
-                onFunctionArgsChange={handleFunctionArgsChange}
                 theme={theme}
               />
             </div>

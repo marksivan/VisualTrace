@@ -21,7 +21,7 @@ import {
   type RuntimeLoadStatus,
 } from "@/lib/browser-runner";
 import { getPreferredStepAfterRun, shouldResetPlaybackOnSourceChange } from "@/lib/playback";
-import { getFirstVisualizableStep } from "@/lib/visualization";
+import { getLastVisualizableStep, hasVisualizableTrace, stepHasVisualization } from "@/lib/visualization";
 import { getLanguageDisplayName } from "@/lib/runners/shared";
 import {
   EMPTY_FUNCTION_ARGS,
@@ -178,10 +178,13 @@ export default function VisualTraceApp() {
 
   const handleInspectorTabChange = (tab: InspectorTab) => {
     if (tab === "visualize" && inspectorTab !== "visualize" && (result?.trace.length ?? 0) > 0) {
-      const firstVizStep = getFirstVisualizableStep(result!.trace);
-      setCurrentStep(firstVizStep);
+      const trace = result!.trace;
+      const visualizableStep = stepHasVisualization(trace[currentStep])
+        ? currentStep
+        : getLastVisualizableStep(trace);
+      setCurrentStep(visualizableStep);
       setPlaybackState("paused");
-      savePlaybackPosition(sessionIdRef.current, firstVizStep);
+      savePlaybackPosition(sessionIdRef.current, visualizableStep);
     }
     setInspectorTab(tab);
   };
@@ -331,10 +334,12 @@ export default function VisualTraceApp() {
       setCurrentStep(initialStep);
       setPlaybackState(execResult.trace.length > 0 ? "paused" : "finished");
 
-      if (execResult.error || execResult.stdout || execResult.stderr) {
+      if (execResult.error || execResult.stderr) {
         setInspectorTab("console");
-      } else {
+      } else if (hasVisualizableTrace(execResult.trace)) {
         setInspectorTab("visualize");
+      } else {
+        setInspectorTab("console");
       }
       setMobilePanel("inspector");
 

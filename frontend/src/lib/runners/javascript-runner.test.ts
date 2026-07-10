@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { getPreferredStepAfterRun } from "@/lib/playback";
+import { getVisualizableVariables, hasVisualizableTrace } from "@/lib/visualization";
 import { instrumentJavaScript } from "./javascript-instrument";
 import { executeJavaScriptInBrowser } from "./javascript-runner";
 import { serializeValue } from "./shared";
@@ -52,6 +54,36 @@ console.log(result);`,
     expect(result.stdout.trim()).toBe("6");
     expect(result.result).toBe(6);
     expect(result.trace.length).toBeGreaterThan(0);
+  });
+
+  it("keeps visualizable trace data in script mode even with stdout", () => {
+    const result = executeJavaScriptInBrowser({
+      source: `function twoSum(nums, target) {
+  const seen = {};
+  for (let i = 0; i < nums.length; i++) {
+    const num = nums[i];
+    const complement = target - num;
+    if (complement in seen) {
+      return [seen[complement], i];
+    }
+    seen[num] = i;
+  }
+  return [];
+}
+const result = twoSum([2, 7, 11, 15], 9);
+console.log(result);`,
+      language: "javascript",
+      stdin: "",
+      trace: true,
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.stdout).toContain("[");
+    expect(hasVisualizableTrace(result.trace)).toBe(true);
+    expect(
+      getVisualizableVariables(result.trace[getPreferredStepAfterRun(result.trace)])
+        .length
+    ).toBeGreaterThan(0);
   });
 
   it("runs function mode via wrapper", () => {

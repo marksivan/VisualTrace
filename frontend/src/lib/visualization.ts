@@ -1,5 +1,5 @@
 import type { TraceStep } from "@/types";
-import { isInspectableVariable } from "@/lib/format";
+import { getResultAtStep, isInspectableVariable } from "@/lib/format";
 
 export type VizType =
   | "array"
@@ -47,7 +47,38 @@ export function getVisualizableVariables(step: TraceStep | null): VizItem[] {
     }
   }
 
+  const result = getResultAtStep(step);
+  if (
+    result !== undefined &&
+    !items.some((item) => item.name === "result")
+  ) {
+    const type = detectVizType("result", result);
+    if (type && type !== "primitive") {
+      items.push({ name: "result", type, value: result });
+    }
+  }
+
   return items;
+}
+
+export function stepHasVisualization(step: TraceStep | null): boolean {
+  return (
+    getVisualizableVariables(step).length > 0 || shouldShowRecursionTree(step)
+  );
+}
+
+export function hasVisualizableTrace(trace: TraceStep[]): boolean {
+  return trace.some((step) => stepHasVisualization(step));
+}
+
+export function getLastVisualizableStep(trace: TraceStep[]): number {
+  for (let i = trace.length - 1; i >= 0; i--) {
+    if (stepHasVisualization(trace[i])) {
+      return i;
+    }
+  }
+
+  return trace.length > 0 ? trace.length - 1 : 0;
 }
 
 /** First trace step that has something to render in the Visualize tab. */

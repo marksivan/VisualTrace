@@ -4,7 +4,9 @@ import { getPreferredStepAfterRun } from "./playback";
 import {
   getActiveArrayIndex,
   getFirstVisualizableStep,
+  getLastVisualizableStep,
   getVisualizableVariables,
+  hasVisualizableTrace,
   isAdjacencyList,
   isLinkedListNode,
   isTreeNode,
@@ -27,18 +29,18 @@ function makeStep(partial: Partial<TraceStep>): TraceStep {
 }
 
 describe("getPreferredStepAfterRun", () => {
-  it("jumps to the last step with inspectable variables", () => {
+  it("jumps to the last step with visualizable variables", () => {
     const trace = [
       makeStep({ step: 0, locals: {} }),
       makeStep({ step: 1, locals: { a: 10 } }),
-      makeStep({ step: 2, locals: { a: 10, b: 3 } }),
+      makeStep({ step: 2, locals: { nums: [1, 2, 3] } }),
     ];
 
     expect(getPreferredStepAfterRun(trace)).toBe(2);
   });
 
-  it("falls back to the final step when no locals exist", () => {
-    const trace = [makeStep({ step: 0 }), makeStep({ step: 1 })];
+  it("falls back to the final step when no visualizable locals exist", () => {
+    const trace = [makeStep({ step: 0 }), makeStep({ step: 1, locals: { x: 1 } })];
     expect(getPreferredStepAfterRun(trace)).toBe(1);
   });
 });
@@ -85,6 +87,17 @@ describe("getVisualizableVariables", () => {
     expect(items.find((i) => i.name === "head")?.type).toBe("linked_list");
     expect(items.find((i) => i.name === "root")?.type).toBe("tree");
     expect(items.find((i) => i.name === "graph")?.type).toBe("graph");
+  });
+
+  it("visualizes structured result values", () => {
+    const step = makeStep({
+      locals: {
+        result: [0, 1],
+      },
+    });
+
+    const items = getVisualizableVariables(step);
+    expect(items.find((i) => i.name === "result")?.type).toBe("array");
   });
 });
 
@@ -133,6 +146,31 @@ describe("shouldShowRecursionTree", () => {
     });
 
     expect(shouldShowRecursionTree(step)).toBe(false);
+  });
+});
+
+describe("getLastVisualizableStep", () => {
+  it("returns the last step with visualizable variables", () => {
+    const trace = [
+      makeStep({ locals: { x: 1 } }),
+      makeStep({ locals: { nums: [1, 2, 3] } }),
+      makeStep({ locals: { nums: [1, 2, 3], i: 1 } }),
+      makeStep({ locals: { result: [0, 1] } }),
+    ];
+
+    expect(getLastVisualizableStep(trace)).toBe(3);
+  });
+});
+
+describe("hasVisualizableTrace", () => {
+  it("returns true when any step has visualizable data", () => {
+    const trace = [
+      makeStep({ locals: { x: 1 } }),
+      makeStep({ locals: { nums: [1, 2, 3] } }),
+    ];
+
+    expect(hasVisualizableTrace(trace)).toBe(true);
+    expect(hasVisualizableTrace([makeStep({ locals: { x: 1 } })])).toBe(false);
   });
 });
 

@@ -16,8 +16,19 @@ Multi-language algorithm execution visualizer. Runs in your browser with local s
 | 6 | Playback controls | Done |
 | 7 | Inspector (variables, stack, console) | Done |
 | 8 | Data structure visualizations | Done |
-| 9 | Multi-language foundation | Planned |
+| 9 | Multi-language foundation | Done (Python + JavaScript) |
 | 10 | Polish & documentation | Planned |
+
+## Supported languages
+
+| Language | Runtime | Tracing | Status |
+|----------|---------|---------|--------|
+| Python | Pyodide (in-browser) | Line-by-line | Supported |
+| JavaScript | Native browser | Line-by-line (instrumented) | Supported |
+| Java | — | — | Coming soon |
+| C++ | — | — | Coming soon |
+
+Java and C++ require heavier WASM runtimes and are planned for a future milestone.
 
 ## Visualize tab
 

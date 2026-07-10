@@ -4,8 +4,8 @@ const STORAGE_KEYS = {
   source: (lang: Language, mode: ExecutionMode) =>
     `visualtrace:source:${lang}:${mode}`,
   legacySource: (lang: Language) => `visualtrace:source:${lang}`,
-  functionName: "visualtrace:functionName",
-  functionArgs: "visualtrace:functionArgs",
+  functionName: (lang: Language) => `visualtrace:functionName:${lang}`,
+  functionArgs: (lang: Language) => `visualtrace:functionArgs:${lang}`,
   sessions: "visualtrace:sessions",
   settings: "visualtrace:settings",
   playback: (sessionId: string) => `visualtrace:playback:${sessionId}`,
@@ -41,7 +41,41 @@ const DEFAULT_PYTHON_FUNCTION_SOURCE = `def two_sum(nums, target):
     return []
 `;
 
-export const DEFAULT_FUNCTION_NAME = "two_sum";
+const DEFAULT_JAVASCRIPT_SCRIPT_SOURCE = `function twoSum(nums, target) {
+  const seen = {};
+  for (let i = 0; i < nums.length; i++) {
+    const num = nums[i];
+    const complement = target - num;
+    if (complement in seen) {
+      return [seen[complement], i];
+    }
+    seen[num] = i;
+  }
+  return [];
+}
+
+const result = twoSum([2, 7, 11, 15], 9);
+console.log(result);
+`;
+
+const DEFAULT_JAVASCRIPT_FUNCTION_SOURCE = `function twoSum(nums, target) {
+  const seen = {};
+  for (let i = 0; i < nums.length; i++) {
+    const num = nums[i];
+    const complement = target - num;
+    if (complement in seen) {
+      return [seen[complement], i];
+    }
+    seen[num] = i;
+  }
+  return [];
+}
+`;
+
+export function getDefaultFunctionName(language: Language): string {
+  return language === "javascript" ? "twoSum" : "two_sum";
+}
+
 export const DEFAULT_FUNCTION_ARGS = "[[2, 7, 11, 15], 9]";
 
 export function getDefaultSource(
@@ -53,8 +87,12 @@ export function getDefaultSource(
       return mode === "function"
         ? DEFAULT_PYTHON_FUNCTION_SOURCE
         : DEFAULT_PYTHON_SCRIPT_SOURCE;
+    case "javascript":
+      return mode === "function"
+        ? DEFAULT_JAVASCRIPT_FUNCTION_SOURCE
+        : DEFAULT_JAVASCRIPT_SCRIPT_SOURCE;
     default:
-      return "# Language not yet supported\n";
+      return `// ${language} is not supported in the browser yet.\n`;
   }
 }
 
@@ -89,24 +127,30 @@ export function saveSource(
   localStorage.setItem(STORAGE_KEYS.source(language, mode), source);
 }
 
-export function loadFunctionName(): string {
-  if (typeof window === "undefined") return DEFAULT_FUNCTION_NAME;
-  return localStorage.getItem(STORAGE_KEYS.functionName) || DEFAULT_FUNCTION_NAME;
+export function loadFunctionName(language: Language): string {
+  if (typeof window === "undefined") return getDefaultFunctionName(language);
+  return (
+    localStorage.getItem(STORAGE_KEYS.functionName(language)) ||
+    getDefaultFunctionName(language)
+  );
 }
 
-export function saveFunctionName(name: string): void {
+export function saveFunctionName(language: Language, name: string): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEYS.functionName, name);
+  localStorage.setItem(STORAGE_KEYS.functionName(language), name);
 }
 
-export function loadFunctionArgs(): string {
+export function loadFunctionArgs(language: Language): string {
   if (typeof window === "undefined") return DEFAULT_FUNCTION_ARGS;
-  return localStorage.getItem(STORAGE_KEYS.functionArgs) || DEFAULT_FUNCTION_ARGS;
+  return (
+    localStorage.getItem(STORAGE_KEYS.functionArgs(language)) ||
+    DEFAULT_FUNCTION_ARGS
+  );
 }
 
-export function saveFunctionArgs(args: string): void {
+export function saveFunctionArgs(language: Language, args: string): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEYS.functionArgs, args);
+  localStorage.setItem(STORAGE_KEYS.functionArgs(language), args);
 }
 
 export function loadSettings(): AppSettings {

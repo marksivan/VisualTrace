@@ -13,9 +13,12 @@ import CopyrightFooter from "@/components/CopyrightFooter";
 import {
   BROWSER_LANGUAGES,
   executeInBrowser,
+  getRuntimeStatus,
+  isLanguageReady,
   preloadPythonRuntime,
 } from "@/lib/browser-runner";
 import { getPreferredStepAfterRun } from "@/lib/playback";
+import { getLanguageDisplayName } from "@/lib/runners/shared";
 import {
   loadFunctionArgs,
   loadFunctionName,
@@ -50,13 +53,13 @@ export default function VisualTraceApp() {
     loadSource("python", loadSettings().executionMode)
   );
   const [stdin, setStdin] = useState("");
-  const [functionName, setFunctionName] = useState(() => loadFunctionName());
-  const [functionArgs, setFunctionArgs] = useState(() => loadFunctionArgs());
+  const [functionName, setFunctionName] = useState(() => loadFunctionName("python"));
+  const [functionArgs, setFunctionArgs] = useState(() => loadFunctionArgs("python"));
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle");
-  const [runtimeStatus, setRuntimeStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [pythonStatus, setPythonStatus] = useState<"loading" | "ready" | "error">("loading");
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const [showTestInput, setShowTestInput] = useState(true);
   const [inspectorTab, setInspectorTab] = useState<"variables" | "stack" | "console" | "visualize">("variables");
@@ -74,12 +77,15 @@ export default function VisualTraceApp() {
 
   useEffect(() => {
     preloadPythonRuntime()
-      .then(() => setRuntimeStatus("ready"))
+      .then(() => setPythonStatus("ready"))
       .catch((err) => {
-        setRuntimeStatus("error");
+        setPythonStatus("error");
         setRuntimeError(err instanceof Error ? err.message : "Failed to load Python runtime");
       });
   }, []);
+
+  const runtimeStatus = getRuntimeStatus(language, pythonStatus);
+  const languageLabel = getLanguageDisplayName(language);
 
   const handleSourceChange = useCallback(
     (value: string) => {
@@ -110,9 +116,13 @@ export default function VisualTraceApp() {
 
   const handleLanguageChange = (langId: string) => {
     saveSource(language, source, executionMode);
+    saveFunctionName(language, functionName);
+    saveFunctionArgs(language, functionArgs);
     const nextLanguage = langId as Language;
     setLanguage(nextLanguage);
     setSource(loadSource(nextLanguage, executionMode));
+    setFunctionName(loadFunctionName(nextLanguage));
+    setFunctionArgs(loadFunctionArgs(nextLanguage));
     setResult(null);
     setCurrentStep(0);
     setPlaybackState("idle");
@@ -120,33 +130,47 @@ export default function VisualTraceApp() {
 
   const handleFunctionNameChange = (value: string) => {
     setFunctionName(value);
-    saveFunctionName(value);
+    saveFunctionName(language, value);
   };
 
   const handleFunctionArgsChange = (value: string) => {
     setFunctionArgs(value);
-    saveFunctionArgs(value);
+    saveFunctionArgs(language, value);
   };
 
   const handleRun = async () => {
-    if (runtimeStatus === "loading") {
-      setResult({
-        stdout: "",
-        stderr: "",
-        result: null,
-        error: "Python runtime is still loading. Please wait a moment and try again.",
-        trace: [],
-      });
-      setInspectorTab("console");
-      return;
-    }
+    if (!isLanguageReady(language, pythonStatus)) {
+      if (runtimeStatus === "unsupported") {
+        setResult({
+          stdout: "",
+          stderr: "",
+          result: null,
+          error: `${languageLabel} is not supported in the browser yet.`,
+          trace: [],
+        });
+        setInspectorTab("console");
+        return;
+      }
 
-    if (runtimeStatus === "error") {
+      if (pythonStatus === "loading") {
+        setResult({
+          stdout: "",
+          stderr: "",
+          result: null,
+          error: `${languageLabel} runtime is still loading. Please wait a moment and try again.`,
+          trace: [],
+        });
+        setInspectorTab("console");
+        return;
+      }
+
       setResult({
         stdout: "",
         stderr: "",
         result: null,
-        error: runtimeError || "Python runtime failed to load. Refresh the page and try again.",
+        error:
+          runtimeError ||
+          `${languageLabel} runtime failed to load. Refresh the page and try again.`,
         trace: [],
       });
       setInspectorTab("console");
@@ -334,7 +358,7 @@ export default function VisualTraceApp() {
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
-            {runtimeStatus === "loading" && (
+            {runtimeStatus === "loading" && language === "python" && (
               <Loader2 className="h-3 w-3 animate-spin text-yellow-500" />
             )}
             <div
@@ -343,16 +367,20 @@ export default function VisualTraceApp() {
                   ? "bg-green-500"
                   : runtimeStatus === "loading"
                     ? "bg-yellow-500"
-                    : "bg-red-500"
+                    : runtimeStatus === "unsupported"
+                      ? "bg-zinc-500"
+                      : "bg-red-500"
               }`}
             />
             <span className={`text-xs ${t.subtext}`}>
-              Python{" "}
+              {languageLabel}{" "}
               {runtimeStatus === "ready"
                 ? "ready"
                 : runtimeStatus === "loading"
                   ? "loading..."
-                  : "failed"}
+                  : runtimeStatus === "unsupported"
+                    ? "coming soon"
+                    : "failed"}
             </span>
           </div>
           <ThemeToggle theme={theme} onToggle={handleThemeToggle} />

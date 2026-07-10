@@ -18,7 +18,7 @@ export default function ExecutionControls({
       {isRunning ? (
         <button
           onClick={onStop}
-          className="flex items-center gap-1.5 rounded-md bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-500"
+          className="flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-500 sm:px-4"
         >
           <Square className="h-3.5 w-3.5" />
           Stop
@@ -26,7 +26,7 @@ export default function ExecutionControls({
       ) : (
         <button
           onClick={onRun}
-          className="flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-500"
+          className="flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 sm:px-4"
         >
           {isRunning ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />

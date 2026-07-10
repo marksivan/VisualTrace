@@ -45,12 +45,12 @@ export default function Inspector({
 
   return (
     <div className="flex h-full flex-col">
-      <div className={`flex border-b ${t.panel}`}>
+      <div className={`flex shrink-0 overflow-x-auto border-b ${t.panel}`}>
         {INSPECTOR_TAB_ORDER.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-xs font-medium capitalize ${
+            className={`shrink-0 px-3 py-2 text-xs font-medium capitalize sm:px-4 ${
               activeTab === tab ? t.tabActive : t.tabInactive
             }`}
           >

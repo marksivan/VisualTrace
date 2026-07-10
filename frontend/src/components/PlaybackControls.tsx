@@ -42,8 +42,8 @@ export default function PlaybackControls({
   const t = getThemeClasses(theme);
 
   return (
-    <div className={`flex flex-col gap-2 border-t px-3 py-2 ${t.panel}`}>
-      <div className="flex items-center gap-1">
+    <div className={`flex flex-col gap-2 border-t px-2 py-2 sm:px-3 ${t.panel}`}>
+      <div className="flex flex-wrap items-center gap-1">
         <button
           onClick={onRestart}
           disabled={disabled || totalSteps === 0}
@@ -97,7 +97,7 @@ export default function PlaybackControls({
           <ChevronRight className="h-4 w-4" />
         </button>
 
-        <span className={`ml-2 text-xs ${t.subtext}`}>
+        <span className={`ml-1 text-xs sm:ml-2 ${t.subtext}`}>
           Step {totalSteps > 0 ? currentStep + 1 : 0} / {totalSteps}
         </span>
       </div>

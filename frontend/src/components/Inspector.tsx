@@ -76,7 +76,9 @@ export default function Inspector({
         {activeTab === "console" && (
           <ConsolePanel stdout={stdout} stderr={stderr} error={error} theme={theme} />
         )}
-        {activeTab === "visualize" && <DataVisualization step={step} theme={theme} />}
+        {activeTab === "visualize" && (
+          <DataVisualization step={step} hasRun={!!step || !!stdout || !!stderr || !!error} theme={theme} />
+        )}
       </div>
     </div>
   );

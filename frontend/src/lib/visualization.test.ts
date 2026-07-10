@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { TraceStep } from "@/types";
+import { getPreferredStepAfterRun } from "./playback";
 import {
   getActiveArrayIndex,
   getVisualizableVariables,
+  isAdjacencyList,
+  isLinkedListNode,
+  isTreeNode,
+  linkedListToArray,
   shouldShowRecursionTree,
 } from "./visualization";
 
@@ -19,6 +24,23 @@ function makeStep(partial: Partial<TraceStep>): TraceStep {
     ...partial,
   };
 }
+
+describe("getPreferredStepAfterRun", () => {
+  it("jumps to the last step with inspectable variables", () => {
+    const trace = [
+      makeStep({ step: 0, locals: {} }),
+      makeStep({ step: 1, locals: { a: 10 } }),
+      makeStep({ step: 2, locals: { a: 10, b: 3 } }),
+    ];
+
+    expect(getPreferredStepAfterRun(trace)).toBe(2);
+  });
+
+  it("falls back to the final step when no locals exist", () => {
+    const trace = [makeStep({ step: 0 }), makeStep({ step: 1 })];
+    expect(getPreferredStepAfterRun(trace)).toBe(1);
+  });
+});
 
 describe("getVisualizableVariables", () => {
   it("detects arrays and dicts", () => {
@@ -47,6 +69,44 @@ describe("getVisualizableVariables", () => {
     const items = getVisualizableVariables(step);
     expect(items.find((i) => i.name === "my_queue")?.type).toBe("queue");
     expect(items.find((i) => i.name === "call_stack")?.type).toBe("stack");
+  });
+
+  it("detects linked lists, trees, and graphs", () => {
+    const step = makeStep({
+      locals: {
+        head: { val: 1, next: { val: 2, next: null } },
+        root: { val: 3, left: { val: 1 }, right: null },
+        graph: { A: ["B", "C"], B: ["A"], C: ["A"] },
+      },
+    });
+
+    const items = getVisualizableVariables(step);
+    expect(items.find((i) => i.name === "head")?.type).toBe("linked_list");
+    expect(items.find((i) => i.name === "root")?.type).toBe("tree");
+    expect(items.find((i) => i.name === "graph")?.type).toBe("graph");
+  });
+});
+
+describe("structure helpers", () => {
+  it("identifies linked list nodes", () => {
+    expect(isLinkedListNode({ val: 1, next: { val: 2 } })).toBe(true);
+    expect(isLinkedListNode({ left: 1, right: 2 })).toBe(false);
+  });
+
+  it("identifies tree nodes", () => {
+    expect(isTreeNode({ val: 1, left: null, right: null })).toBe(true);
+    expect(isTreeNode({ val: 1, next: null })).toBe(false);
+  });
+
+  it("identifies adjacency lists", () => {
+    expect(isAdjacencyList({ A: ["B"], B: ["A"] })).toBe(true);
+    expect(isAdjacencyList({ A: 1 })).toBe(false);
+  });
+
+  it("flattens linked lists for display", () => {
+    expect(
+      linkedListToArray({ val: 1, next: { val: 2, next: { val: 3, next: null } } })
+    ).toEqual([1, 2, 3]);
   });
 });
 

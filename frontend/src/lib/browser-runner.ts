@@ -74,6 +74,14 @@ def serialize_value(value, depth=0):
         return {str(k): serialize_value(v, depth + 1) for k, v in list(value.items())[:50]}
     if isinstance(value, set):
         return [serialize_value(v, depth + 1) for v in list(value)[:50]]
+    node_attrs = ("val", "value", "key", "left", "right", "next", "neighbors", "children")
+    if hasattr(value, "__dict__"):
+        attrs = {}
+        for attr in node_attrs:
+            if hasattr(value, attr):
+                attrs[attr] = serialize_value(getattr(value, attr), depth + 1)
+        if attrs:
+            return attrs
     return repr(value)
 
 class Tracer:

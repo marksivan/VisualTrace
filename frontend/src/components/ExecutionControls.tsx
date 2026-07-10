@@ -6,14 +6,12 @@ interface ExecutionControlsProps {
   onRun: () => void;
   onStop: () => void;
   isRunning: boolean;
-  hasResult: boolean;
 }
 
 export default function ExecutionControls({
   onRun,
   onStop,
   isRunning,
-  hasResult,
 }: ExecutionControlsProps) {
   return (
     <div className="flex items-center gap-2">
@@ -35,7 +33,7 @@ export default function ExecutionControls({
           ) : (
             <Play className="h-3.5 w-3.5" />
           )}
-          {hasResult ? "Re-run" : "Run"}
+          Run
         </button>
       )}
     </div>

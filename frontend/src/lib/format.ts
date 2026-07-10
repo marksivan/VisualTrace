@@ -1,3 +1,5 @@
+import type { TraceStep } from "@/types";
+
 /**
  * Format a value for display in the inspector.
  * Simple values stay compact; complex structures are pretty-printed.
@@ -19,4 +21,52 @@ export function formatValueForDisplay(value: unknown): string {
 
 export function isMultilineDisplay(text: string): boolean {
   return text.includes("\n");
+}
+
+/** Hide functions, modules, and other non-data values from the inspector. */
+export function isInspectableVariable(name: string, value: unknown): boolean {
+  if (name.startsWith("_")) return false;
+  if (name === "result") return false;
+
+  if (typeof value === "string") {
+    const hiddenPrefixes = [
+      "<function ",
+      "<builtin function",
+      "<method ",
+      "<module ",
+      "<class ",
+      "<cell ",
+      "<wrapper ",
+    ];
+    if (hiddenPrefixes.some((prefix) => value.startsWith(prefix))) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/** Return `result` only if it exists in scope at the current trace step. */
+export function getResultAtStep(step: TraceStep | null): unknown | undefined {
+  if (!step) return undefined;
+
+  if (Object.prototype.hasOwnProperty.call(step.locals, "result")) {
+    return step.locals.result;
+  }
+  if (Object.prototype.hasOwnProperty.call(step.globals, "result")) {
+    return step.globals.result;
+  }
+
+  return undefined;
+}
+
+export function getInspectableVariables(
+  step: TraceStep | null
+): Array<[string, unknown]> {
+  if (!step) return [];
+
+  const merged = { ...step.globals, ...step.locals };
+  return Object.entries(merged).filter(([name, value]) =>
+    isInspectableVariable(name, value)
+  );
 }

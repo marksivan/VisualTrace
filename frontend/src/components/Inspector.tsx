@@ -2,15 +2,22 @@
 
 import { useState } from "react";
 import type { TraceStep } from "@/types";
-import { formatValueForDisplay, isMultilineDisplay } from "@/lib/format";
+import {
+  formatValueForDisplay,
+  getInspectableVariables,
+  getResultAtStep,
+  isMultilineDisplay,
+} from "@/lib/format";
+import type { Theme } from "@/lib/theme";
+import { getThemeClasses } from "@/lib/theme";
 import DataVisualization from "./visualizations/DataVisualization";
 
 interface InspectorProps {
   step: TraceStep | null;
   stdout: string;
   stderr: string;
-  result: unknown;
   error: string | null;
+  theme?: Theme;
   activeTab?: "variables" | "stack" | "console" | "visualize";
   onTabChange?: (tab: "variables" | "stack" | "console" | "visualize") => void;
 }
@@ -19,13 +26,15 @@ export default function Inspector({
   step,
   stdout,
   stderr,
-  result,
   error,
+  theme = "dark",
   activeTab: controlledTab,
   onTabChange,
 }: InspectorProps) {
   const [internalTab, setInternalTab] = useState<"variables" | "stack" | "console" | "visualize">("variables");
   const activeTab = controlledTab ?? internalTab;
+  const t = getThemeClasses(theme);
+  const stepResult = getResultAtStep(step);
 
   const setActiveTab = (tab: "variables" | "stack" | "console" | "visualize") => {
     if (onTabChange) onTabChange(tab);
@@ -34,15 +43,13 @@ export default function Inspector({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex border-b border-zinc-800">
+      <div className={`flex border-b ${t.panel}`}>
         {(["variables", "stack", "console", "visualize"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 text-xs font-medium capitalize ${
-              activeTab === tab
-                ? "border-b-2 border-blue-500 text-blue-400"
-                : "text-zinc-500 hover:text-zinc-300"
+              activeTab === tab ? t.tabActive : t.tabInactive
             }`}
           >
             {tab}
@@ -52,22 +59,22 @@ export default function Inspector({
 
       <div className="flex-1 overflow-auto p-3">
         {error && activeTab === "variables" && (
-          <div className="mb-3 rounded-md border border-red-800/50 bg-red-900/20 p-3 text-xs text-red-300">
+          <div className={`mb-3 rounded-md border p-3 text-xs ${t.errorBox}`}>
             {error}
             <button
               onClick={() => setActiveTab("console")}
-              className="mt-2 block text-red-400 underline hover:text-red-200"
+              className="mt-2 block underline opacity-80 hover:opacity-100"
             >
               View full error in Console
             </button>
           </div>
         )}
         {activeTab === "variables" && (
-          <VariablesPanel step={step} result={result} />
+          <VariablesPanel step={step} stepResult={stepResult} theme={theme} />
         )}
-        {activeTab === "stack" && <StackPanel step={step} />}
+        {activeTab === "stack" && <StackPanel step={step} theme={theme} />}
         {activeTab === "console" && (
-          <ConsolePanel stdout={stdout} stderr={stderr} error={error} />
+          <ConsolePanel stdout={stdout} stderr={stderr} error={error} theme={theme} />
         )}
         {activeTab === "visualize" && <DataVisualization step={step} />}
       </div>
@@ -75,68 +82,75 @@ export default function Inspector({
   );
 }
 
-function ValueDisplay({ value }: { value: unknown }) {
+function ValueDisplay({ value, theme }: { value: unknown; theme: Theme }) {
+  const t = getThemeClasses(theme);
   const text = formatValueForDisplay(value);
   const multiline = isMultilineDisplay(text);
 
   if (multiline) {
     return (
-      <pre className="mt-1 overflow-x-auto whitespace-pre font-mono text-xs leading-relaxed text-zinc-300">
+      <pre className={`mt-1 overflow-x-auto whitespace-pre font-mono text-xs leading-relaxed ${t.cardPre}`}>
         {text}
       </pre>
     );
   }
 
   return (
-    <code className="mt-1 block font-mono text-sm text-zinc-200">{text}</code>
+    <code className={`mt-1 block font-mono text-sm ${t.cardText}`}>{text}</code>
   );
 }
 
 function VariablesPanel({
   step,
-  result,
+  stepResult,
+  theme,
 }: {
   step: TraceStep | null;
-  result: unknown;
+  stepResult: unknown;
+  theme: Theme;
 }) {
-  if (!step && (result === null || result === undefined)) {
+  const t = getThemeClasses(theme);
+  const varEntries = getInspectableVariables(step);
+  const hasResult = stepResult !== undefined;
+
+  if (!step && !hasResult) {
     return (
-      <p className="text-sm text-zinc-500">
+      <p className={`text-sm ${t.subtext}`}>
         Run your code to inspect variables at each step.
       </p>
     );
   }
 
-  const allVars = step ? { ...step.globals, ...step.locals } : {};
-  const varEntries = Object.entries(allVars);
-  const hasResult = result !== null && result !== undefined;
-
   return (
     <div className="space-y-3">
       {varEntries.length > 0 ? (
         varEntries.map(([name, value]) => (
-          <div key={name} className="rounded-md border border-zinc-800 bg-zinc-900/50 p-3">
-            <div className="font-mono text-xs font-medium text-blue-400">{name}</div>
-            <ValueDisplay value={value} />
+          <div key={name} className={`p-3 ${t.card}`}>
+            <div className="font-mono text-xs font-medium text-blue-500">{name}</div>
+            <ValueDisplay value={value} theme={theme} />
           </div>
         ))
       ) : step ? (
-        <p className="text-sm text-zinc-500">No local variables at this step.</p>
+        <p className={`text-sm ${t.subtext}`}>No local variables at this step.</p>
       ) : null}
 
       {hasResult && (
-        <div className="rounded-md border border-green-800/50 bg-green-900/20 p-3">
-          <div className="font-mono text-xs font-medium text-green-400">result</div>
-          <ValueDisplay value={result} />
+        <div className={`p-3 ${t.resultCard}`}>
+          <div className="font-mono text-xs font-medium text-green-600 dark:text-green-400">
+            result
+          </div>
+          <ValueDisplay value={stepResult} theme={theme} />
         </div>
       )}
     </div>
   );
 }
 
-function StackPanel({ step }: { step: TraceStep | null }) {
+function StackPanel({ step, theme }: { step: TraceStep | null; theme: Theme }) {
+  const t = getThemeClasses(theme);
+
   if (!step || step.stack.length === 0) {
-    return <p className="text-sm text-zinc-500">No call stack available.</p>;
+    return <p className={`text-sm ${t.subtext}`}>No call stack available.</p>;
   }
 
   return (
@@ -145,13 +159,11 @@ function StackPanel({ step }: { step: TraceStep | null }) {
         <div
           key={`${frame.function}-${frame.line}-${i}`}
           className={`rounded-md border px-3 py-2 font-mono text-xs ${
-            i === 0
-              ? "border-blue-700/50 bg-blue-900/20 text-blue-300"
-              : "border-zinc-800 bg-zinc-900/50 text-zinc-400"
+            i === 0 ? t.stackActive : t.stackInactive
           }`}
         >
           <span className="font-medium">{frame.function}</span>
-          <span className="text-zinc-600"> @ line {frame.line}</span>
+          <span className={t.labelMuted}> @ line {frame.line}</span>
         </div>
       ))}
     </div>
@@ -162,39 +174,42 @@ function ConsolePanel({
   stdout,
   stderr,
   error,
+  theme,
 }: {
   stdout: string;
   stderr: string;
   error: string | null;
+  theme: Theme;
 }) {
+  const t = getThemeClasses(theme);
   const hasOutput = stdout || stderr || error;
 
   if (!hasOutput) {
-    return <p className="text-sm text-zinc-500">No console output yet.</p>;
+    return <p className={`text-sm ${t.subtext}`}>No console output yet.</p>;
   }
 
   return (
     <div className="space-y-2 font-mono text-xs">
       {stdout && (
         <div>
-          <div className="mb-1 text-zinc-500">stdout</div>
-          <pre className="whitespace-pre-wrap rounded-md bg-zinc-900 p-2 text-zinc-300">
+          <div className={t.label}>stdout</div>
+          <pre className={`mt-1 whitespace-pre-wrap rounded-md p-2 ${t.consoleBg} ${t.cardPre}`}>
             {stdout}
           </pre>
         </div>
       )}
       {stderr && (
         <div>
-          <div className="mb-1 text-yellow-600">stderr</div>
-          <pre className="whitespace-pre-wrap rounded-md bg-yellow-900/20 p-2 text-yellow-300">
+          <div className="text-yellow-600">stderr</div>
+          <pre className="mt-1 whitespace-pre-wrap rounded-md bg-yellow-900/20 p-2 text-yellow-700 dark:text-yellow-300">
             {stderr}
           </pre>
         </div>
       )}
       {error && (
         <div>
-          <div className="mb-1 text-red-500">error</div>
-          <pre className="whitespace-pre-wrap rounded-md bg-red-900/20 p-2 text-red-300">
+          <div className="text-red-500">error</div>
+          <pre className={`mt-1 whitespace-pre-wrap rounded-md border p-2 ${t.errorBox}`}>
             {error}
           </pre>
         </div>

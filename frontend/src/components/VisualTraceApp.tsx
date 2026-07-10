@@ -8,6 +8,7 @@ import TestInput from "@/components/TestInput";
 import ExecutionControls from "@/components/ExecutionControls";
 import PlaybackControls from "@/components/PlaybackControls";
 import Inspector from "@/components/Inspector";
+import ThemeToggle from "@/components/ThemeToggle";
 import {
   BROWSER_LANGUAGES,
   executeInBrowser,
@@ -19,8 +20,11 @@ import {
   saveSession,
   saveSource,
   savePlaybackPosition,
+  saveSettings,
 } from "@/lib/storage";
+import { getThemeClasses, type Theme } from "@/lib/theme";
 import type {
+  AppSettings,
   ExecutionResult,
   Language,
   LanguageInfo,
@@ -47,7 +51,14 @@ export default function VisualTraceApp() {
   const sessionIdRef = useRef(
     typeof crypto !== "undefined" ? crypto.randomUUID() : "session-local"
   );
-  const settings = loadSettings();
+  const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
+  const theme = settings.theme;
+  const t = getThemeClasses(theme);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
 
   useEffect(() => {
     preloadPythonRuntime()
@@ -65,6 +76,13 @@ export default function VisualTraceApp() {
     },
     [language, settings.autoSave]
   );
+
+  const handleThemeToggle = () => {
+    const next: Theme = theme === "dark" ? "light" : "dark";
+    const updated = { ...settings, theme: next };
+    setSettings(updated);
+    saveSettings(updated);
+  };
 
   const handleLanguageChange = (langId: string) => {
     saveSource(language, source);
@@ -244,12 +262,14 @@ export default function VisualTraceApp() {
   const currentLine = currentTraceStep?.line;
 
   return (
-    <div className="flex h-screen flex-col bg-zinc-950 text-zinc-100">
-      <header className="flex items-center justify-between border-b border-zinc-800 px-4 py-2">
+    <div className={`flex h-screen flex-col ${t.app}`}>
+      <header className={`flex items-center justify-between border-b px-4 py-2 ${t.header}`}>
         <div className="flex items-center gap-3">
           <Activity className="h-5 w-5 text-blue-500" />
           <h1 className="text-lg font-semibold tracking-tight">VisualTrace</h1>
-          <span className="text-xs text-zinc-600">Runs in your browser · saved to local storage</span>
+          <span className={`text-xs ${t.labelMuted}`}>
+            Runs in your browser · saved to local storage
+          </span>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
@@ -265,7 +285,7 @@ export default function VisualTraceApp() {
                     : "bg-red-500"
               }`}
             />
-            <span className="text-xs text-zinc-500">
+            <span className={`text-xs ${t.subtext}`}>
               Python{" "}
               {runtimeStatus === "ready"
                 ? "ready"
@@ -274,10 +294,12 @@ export default function VisualTraceApp() {
                   : "failed"}
             </span>
           </div>
+          <ThemeToggle theme={theme} onToggle={handleThemeToggle} />
           <LanguageSelector
             languages={languages}
             selected={language}
             onChange={handleLanguageChange}
+            theme={theme}
           />
           <ExecutionControls
             onRun={handleRun}
@@ -289,19 +311,19 @@ export default function VisualTraceApp() {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex w-1/2 flex-col border-r border-zinc-800">
-          <div className="flex items-center justify-between border-b border-zinc-800 px-3 py-1.5">
-            <span className="text-xs font-medium text-zinc-500">Editor</span>
+        <div className={`flex w-1/2 flex-col border-r ${t.panel}`}>
+          <div className={`flex items-center justify-between border-b px-3 py-1.5 ${t.panel}`}>
+            <span className={`text-xs font-medium ${t.label}`}>Editor</span>
             <button
               onClick={() => setShowTestInput(!showTestInput)}
-              className="text-xs text-zinc-500 hover:text-zinc-300"
+              className={`text-xs ${t.subtext} hover:opacity-80`}
             >
               {showTestInput ? "Hide" : "Show"} Input
             </button>
           </div>
 
           {showTestInput && (
-            <div className="border-b border-zinc-800">
+            <div className={`border-b ${t.panel}`}>
               <TestInput
                 stdin={stdin}
                 onStdinChange={setStdin}
@@ -309,6 +331,7 @@ export default function VisualTraceApp() {
                 onFunctionNameChange={setFunctionName}
                 functionArgs={functionArgs}
                 onFunctionArgsChange={setFunctionArgs}
+                theme={theme}
               />
             </div>
           )}
@@ -320,7 +343,7 @@ export default function VisualTraceApp() {
               onChange={handleSourceChange}
               currentLine={currentLine}
               fontSize={settings.fontSize}
-              theme={settings.theme}
+              theme={theme}
             />
           </div>
 
@@ -335,20 +358,21 @@ export default function VisualTraceApp() {
             onRestart={handleRestart}
             onSeek={handleSeek}
             disabled={!result || totalSteps === 0}
+            theme={theme}
           />
         </div>
 
         <div className="flex w-1/2 flex-col">
-          <div className="border-b border-zinc-800 px-3 py-1.5">
-            <span className="text-xs font-medium text-zinc-500">Inspector</span>
+          <div className={`border-b px-3 py-1.5 ${t.panel}`}>
+            <span className={`text-xs font-medium ${t.label}`}>Inspector</span>
           </div>
           <div className="flex-1 overflow-hidden">
             <Inspector
               step={currentTraceStep}
               stdout={currentTraceStep?.stdout ?? result?.stdout ?? ""}
               stderr={currentTraceStep?.stderr ?? result?.stderr ?? ""}
-              result={result?.result}
               error={result?.error ?? null}
+              theme={theme}
               activeTab={inspectorTab}
               onTabChange={setInspectorTab}
             />

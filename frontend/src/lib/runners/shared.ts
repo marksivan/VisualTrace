@@ -10,7 +10,12 @@ export function serializeValue(value: unknown, depth = 0): unknown {
   }
 
   if (value === null || value === undefined) return value;
-  if (typeof value === "boolean" || typeof value === "number") return value;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (Number.isNaN(value)) return "NaN";
+    if (!Number.isFinite(value)) return value > 0 ? "Infinity" : "-Infinity";
+    return value;
+  }
   if (typeof value === "string") return value;
   if (typeof value === "function") return formatUnknown(value);
   if (typeof value === "symbol" || typeof value === "bigint") {

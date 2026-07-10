@@ -18,6 +18,19 @@ describe("serializeValue", () => {
     expect(value.count).toBe(2);
     expect(value.fn).toBeUndefined();
   });
+
+  it("serializes non-finite numbers as JSON-safe strings", () => {
+    expect(serializeValue(Number.POSITIVE_INFINITY)).toBe("Infinity");
+    expect(serializeValue(Number.NEGATIVE_INFINITY)).toBe("-Infinity");
+    expect(serializeValue(Number.NaN)).toBe("NaN");
+    expect(
+      JSON.parse(
+        JSON.stringify({
+          minimum_length: serializeValue(Number.POSITIVE_INFINITY),
+        })
+      )
+    ).toEqual({ minimum_length: "Infinity" });
+  });
 });
 
 describe("instrumentJavaScript", () => {

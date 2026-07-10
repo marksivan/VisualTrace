@@ -13,3 +13,12 @@ export function getPreferredStepAfterRun(trace: TraceStep[]): number {
 
   return trace.length - 1;
 }
+
+/** Reset the playback scrubber when editor content no longer matches the last run. */
+export function shouldResetPlaybackOnSourceChange(
+  newSource: string,
+  executedSource: string | null,
+  hasTrace: boolean
+): boolean {
+  return hasTrace && executedSource !== null && newSource !== executedSource;
+}

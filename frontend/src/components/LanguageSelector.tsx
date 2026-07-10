@@ -1,23 +1,29 @@
 "use client";
 
 import type { LanguageInfo } from "@/types";
+import type { Theme } from "@/lib/theme";
+import { getThemeClasses } from "@/lib/theme";
 
 interface LanguageSelectorProps {
   languages: LanguageInfo[];
   selected: string;
   onChange: (languageId: string) => void;
+  theme?: Theme;
 }
 
 export default function LanguageSelector({
   languages,
   selected,
   onChange,
+  theme = "dark",
 }: LanguageSelectorProps) {
+  const t = getThemeClasses(theme);
+
   return (
     <select
       value={selected}
       onChange={(e) => onChange(e.target.value)}
-      className="rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none"
+      className={t.select}
       aria-label="Select programming language"
     >
       {languages.map((lang) => (

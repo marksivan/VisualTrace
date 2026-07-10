@@ -8,6 +8,8 @@ import {
   Pause,
   RotateCcw,
 } from "lucide-react";
+import type { Theme } from "@/lib/theme";
+import { getThemeClasses } from "@/lib/theme";
 
 interface PlaybackControlsProps {
   currentStep: number;
@@ -20,6 +22,7 @@ interface PlaybackControlsProps {
   onRestart: () => void;
   onSeek: (step: number) => void;
   disabled: boolean;
+  theme?: Theme;
 }
 
 export default function PlaybackControls({
@@ -33,16 +36,18 @@ export default function PlaybackControls({
   onRestart,
   onSeek,
   disabled,
+  theme = "dark",
 }: PlaybackControlsProps) {
   const maxStep = Math.max(0, totalSteps - 1);
+  const t = getThemeClasses(theme);
 
   return (
-    <div className="flex flex-col gap-2 border-t border-zinc-800 px-3 py-2">
+    <div className={`flex flex-col gap-2 border-t px-3 py-2 ${t.panel}`}>
       <div className="flex items-center gap-1">
         <button
           onClick={onRestart}
           disabled={disabled || totalSteps === 0}
-          className="rounded p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-30"
+          className={`rounded p-1.5 disabled:opacity-30 ${t.iconBtn}`}
           title="Restart"
         >
           <RotateCcw className="h-4 w-4" />
@@ -50,7 +55,7 @@ export default function PlaybackControls({
         <button
           onClick={onStepBack}
           disabled={disabled || currentStep <= 0}
-          className="rounded p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-30"
+          className={`rounded p-1.5 disabled:opacity-30 ${t.iconBtn}`}
           title="Previous step"
         >
           <SkipBack className="h-4 w-4" />
@@ -58,7 +63,7 @@ export default function PlaybackControls({
         <button
           onClick={onStepBack}
           disabled={disabled || currentStep <= 0}
-          className="rounded p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-30"
+          className={`rounded p-1.5 disabled:opacity-30 ${t.iconBtn}`}
           title="Previous line"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -86,13 +91,13 @@ export default function PlaybackControls({
         <button
           onClick={onStepForward}
           disabled={disabled || currentStep >= maxStep}
-          className="rounded p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-30"
+          className={`rounded p-1.5 disabled:opacity-30 ${t.iconBtn}`}
           title="Next line"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
 
-        <span className="ml-2 text-xs text-zinc-500">
+        <span className={`ml-2 text-xs ${t.subtext}`}>
           Step {totalSteps > 0 ? currentStep + 1 : 0} / {totalSteps}
         </span>
       </div>

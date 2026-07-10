@@ -1,0 +1,27 @@
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHON_RUNNER_IMAGE=visualtrace-python-runner
+
+  python-runner-build:
+    build:
+      context: ./runners/python
+      dockerfile: Dockerfile
+    image: visualtrace-python-runner
+    command: ["echo", "Python runner image built"]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - api

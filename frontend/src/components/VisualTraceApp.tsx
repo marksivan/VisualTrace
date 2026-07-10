@@ -15,9 +15,14 @@ import {
   executeInBrowser,
   preloadPythonRuntime,
 } from "@/lib/browser-runner";
+import { getPreferredStepAfterRun } from "@/lib/playback";
 import {
+  loadFunctionArgs,
+  loadFunctionName,
   loadSettings,
   loadSource,
+  saveFunctionArgs,
+  saveFunctionName,
   saveSession,
   saveSource,
   savePlaybackPosition,
@@ -26,6 +31,7 @@ import {
 import { getThemeClasses, type Theme } from "@/lib/theme";
 import type {
   AppSettings,
+  ExecutionMode,
   ExecutionResult,
   Language,
   LanguageInfo,
@@ -35,11 +41,17 @@ import type {
 
 export default function VisualTraceApp() {
   const [languages] = useState<LanguageInfo[]>(BROWSER_LANGUAGES);
+  const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const [language, setLanguage] = useState<Language>("python");
-  const [source, setSource] = useState(() => loadSource("python"));
+  const [executionMode, setExecutionMode] = useState<ExecutionMode>(
+    () => loadSettings().executionMode
+  );
+  const [source, setSource] = useState(() =>
+    loadSource("python", loadSettings().executionMode)
+  );
   const [stdin, setStdin] = useState("");
-  const [functionName, setFunctionName] = useState("");
-  const [functionArgs, setFunctionArgs] = useState("");
+  const [functionName, setFunctionName] = useState(() => loadFunctionName());
+  const [functionArgs, setFunctionArgs] = useState(() => loadFunctionArgs());
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
@@ -52,7 +64,6 @@ export default function VisualTraceApp() {
   const sessionIdRef = useRef(
     typeof crypto !== "undefined" ? crypto.randomUUID() : "session-local"
   );
-  const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const theme = settings.theme;
   const t = getThemeClasses(theme);
 
@@ -73,9 +84,9 @@ export default function VisualTraceApp() {
   const handleSourceChange = useCallback(
     (value: string) => {
       setSource(value);
-      if (settings.autoSave) saveSource(language, value);
+      if (settings.autoSave) saveSource(language, value, executionMode);
     },
-    [language, settings.autoSave]
+    [language, executionMode, settings.autoSave]
   );
 
   const handleThemeToggle = () => {
@@ -85,13 +96,36 @@ export default function VisualTraceApp() {
     saveSettings(updated);
   };
 
-  const handleLanguageChange = (langId: string) => {
-    saveSource(language, source);
-    setLanguage(langId as Language);
-    setSource(loadSource(langId as Language));
+  const handleExecutionModeChange = (mode: ExecutionMode) => {
+    saveSource(language, source, executionMode);
+    setExecutionMode(mode);
+    const updated = { ...settings, executionMode: mode };
+    setSettings(updated);
+    saveSettings(updated);
+    setSource(loadSource(language, mode));
     setResult(null);
     setCurrentStep(0);
     setPlaybackState("idle");
+  };
+
+  const handleLanguageChange = (langId: string) => {
+    saveSource(language, source, executionMode);
+    const nextLanguage = langId as Language;
+    setLanguage(nextLanguage);
+    setSource(loadSource(nextLanguage, executionMode));
+    setResult(null);
+    setCurrentStep(0);
+    setPlaybackState("idle");
+  };
+
+  const handleFunctionNameChange = (value: string) => {
+    setFunctionName(value);
+    saveFunctionName(value);
+  };
+
+  const handleFunctionArgsChange = (value: string) => {
+    setFunctionArgs(value);
+    saveFunctionArgs(value);
   };
 
   const handleRun = async () => {
@@ -124,8 +158,36 @@ export default function VisualTraceApp() {
     setCurrentStep(0);
     setPlaybackState("idle");
 
+    const useFunctionMode = executionMode === "function";
     let parsedArgs: unknown[] = [];
-    if (functionArgs.trim()) {
+
+    if (useFunctionMode) {
+      if (!functionName.trim()) {
+        setResult({
+          stdout: "",
+          stderr: "",
+          result: null,
+          error: "Function mode requires a function name.",
+          trace: [],
+        });
+        setIsRunning(false);
+        setInspectorTab("console");
+        return;
+      }
+
+      if (!functionArgs.trim()) {
+        setResult({
+          stdout: "",
+          stderr: "",
+          result: null,
+          error: "Function mode requires function arguments as JSON.",
+          trace: [],
+        });
+        setIsRunning(false);
+        setInspectorTab("console");
+        return;
+      }
+
       try {
         const parsed = JSON.parse(functionArgs);
         parsedArgs = Array.isArray(parsed) ? parsed : [parsed];
@@ -143,45 +205,41 @@ export default function VisualTraceApp() {
       }
     }
 
-    if (functionName.trim() && parsedArgs.length === 0 && functionArgs.trim()) {
-      setResult({
-        stdout: "",
-        stderr: "",
-        result: null,
-        error: "Function args must be a JSON array when calling a function by name",
-        trace: [],
-      });
-      setIsRunning(false);
-      setInspectorTab("console");
-      return;
-    }
-
     try {
       const execResult = await executeInBrowser({
         source,
         language,
         stdin,
-        function_name: functionName.trim() || undefined,
-        function_args: parsedArgs,
+        function_name: useFunctionMode ? functionName.trim() : undefined,
+        function_args: useFunctionMode ? parsedArgs : undefined,
         trace: true,
       });
 
+      const initialStep = getPreferredStepAfterRun(execResult.trace);
+
       setResult(execResult);
-      setCurrentStep(0);
+      setCurrentStep(initialStep);
       setPlaybackState(execResult.trace.length > 0 ? "paused" : "finished");
-      setInspectorTab(execResult.error ? "console" : "variables");
+
+      if (execResult.error || execResult.stdout || execResult.stderr) {
+        setInspectorTab("console");
+      } else {
+        setInspectorTab("variables");
+      }
 
       saveSession({
         id: sessionIdRef.current,
         language,
+        executionMode,
         source,
         stdin,
         functionName,
         functionArgs,
         createdAt: new Date().toISOString(),
         result: execResult,
-        playbackPosition: 0,
+        playbackPosition: initialStep,
       });
+      savePlaybackPosition(sessionIdRef.current, initialStep);
     } catch (err) {
       setResult({
         stdout: "",
@@ -261,6 +319,8 @@ export default function VisualTraceApp() {
   }, [playbackState, totalSteps]);
 
   const currentLine = currentTraceStep?.line;
+  const displayStdout = currentTraceStep?.stdout || result?.stdout || "";
+  const displayStderr = currentTraceStep?.stderr || result?.stderr || "";
 
   return (
     <div className={`flex h-screen flex-col ${t.app}`}>
@@ -306,7 +366,6 @@ export default function VisualTraceApp() {
             onRun={handleRun}
             onStop={handleStop}
             isRunning={isRunning}
-            hasResult={!!result}
           />
         </div>
       </header>
@@ -326,12 +385,14 @@ export default function VisualTraceApp() {
           {showTestInput && (
             <div className={`border-b ${t.panel}`}>
               <TestInput
+                executionMode={executionMode}
+                onExecutionModeChange={handleExecutionModeChange}
                 stdin={stdin}
                 onStdinChange={setStdin}
                 functionName={functionName}
-                onFunctionNameChange={setFunctionName}
+                onFunctionNameChange={handleFunctionNameChange}
                 functionArgs={functionArgs}
-                onFunctionArgsChange={setFunctionArgs}
+                onFunctionArgsChange={handleFunctionArgsChange}
                 theme={theme}
               />
             </div>
@@ -370,8 +431,8 @@ export default function VisualTraceApp() {
           <div className="flex-1 overflow-hidden">
             <Inspector
               step={currentTraceStep}
-              stdout={currentTraceStep?.stdout ?? result?.stdout ?? ""}
-              stderr={currentTraceStep?.stderr ?? result?.stderr ?? ""}
+              stdout={displayStdout}
+              stderr={displayStderr}
               error={result?.error ?? null}
               theme={theme}
               activeTab={inspectorTab}

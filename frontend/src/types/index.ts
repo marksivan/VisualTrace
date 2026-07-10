@@ -1,5 +1,7 @@
 export type Language = "python" | "javascript" | "java" | "cpp";
 
+export type ExecutionMode = "script" | "function";
+
 export interface LanguageInfo {
   id: Language;
   name: string;
@@ -43,6 +45,7 @@ export interface ExecuteRequest {
 export interface Session {
   id: string;
   language: Language;
+  executionMode: ExecutionMode;
   source: string;
   stdin: string;
   functionName: string;
@@ -56,6 +59,7 @@ export interface AppSettings {
   theme: "light" | "dark";
   fontSize: number;
   autoSave: boolean;
+  executionMode: ExecutionMode;
 }
 
 export type PlaybackState = "idle" | "playing" | "paused" | "finished";

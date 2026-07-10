@@ -1,7 +1,11 @@
-import type { AppSettings, Language, Session } from "@/types";
+import type { AppSettings, ExecutionMode, Language, Session } from "@/types";
 
 const STORAGE_KEYS = {
-  source: (lang: Language) => `visualtrace:source:${lang}`,
+  source: (lang: Language, mode: ExecutionMode) =>
+    `visualtrace:source:${lang}:${mode}`,
+  legacySource: (lang: Language) => `visualtrace:source:${lang}`,
+  functionName: "visualtrace:functionName",
+  functionArgs: "visualtrace:functionArgs",
   sessions: "visualtrace:sessions",
   settings: "visualtrace:settings",
   playback: (sessionId: string) => `visualtrace:playback:${sessionId}`,
@@ -11,9 +15,10 @@ const DEFAULT_SETTINGS: AppSettings = {
   theme: "dark",
   fontSize: 14,
   autoSave: true,
+  executionMode: "script",
 };
 
-const DEFAULT_PYTHON_SOURCE = `def two_sum(nums, target):
+const DEFAULT_PYTHON_SCRIPT_SOURCE = `def two_sum(nums, target):
     seen = {}
     for i, num in enumerate(nums):
         complement = target - num
@@ -26,23 +31,82 @@ result = two_sum([2, 7, 11, 15], 9)
 print(result)
 `;
 
-export function getDefaultSource(language: Language): string {
+const DEFAULT_PYTHON_FUNCTION_SOURCE = `def two_sum(nums, target):
+    seen = {}
+    for i, num in enumerate(nums):
+        complement = target - num
+        if complement in seen:
+            return [seen[complement], i]
+        seen[num] = i
+    return []
+`;
+
+export const DEFAULT_FUNCTION_NAME = "two_sum";
+export const DEFAULT_FUNCTION_ARGS = "[[2, 7, 11, 15], 9]";
+
+export function getDefaultSource(
+  language: Language,
+  mode: ExecutionMode = "script"
+): string {
   switch (language) {
     case "python":
-      return DEFAULT_PYTHON_SOURCE;
+      return mode === "function"
+        ? DEFAULT_PYTHON_FUNCTION_SOURCE
+        : DEFAULT_PYTHON_SCRIPT_SOURCE;
     default:
       return "# Language not yet supported\n";
   }
 }
 
-export function loadSource(language: Language): string {
-  if (typeof window === "undefined") return getDefaultSource(language);
-  return localStorage.getItem(STORAGE_KEYS.source(language)) || getDefaultSource(language);
+export function loadSource(
+  language: Language,
+  mode: ExecutionMode = "script"
+): string {
+  if (typeof window === "undefined") return getDefaultSource(language, mode);
+
+  const key = STORAGE_KEYS.source(language, mode);
+  const stored = localStorage.getItem(key);
+  if (stored) return stored;
+
+  // Migrate legacy single-key storage into script mode.
+  if (mode === "script") {
+    const legacy = localStorage.getItem(STORAGE_KEYS.legacySource(language));
+    if (legacy) {
+      localStorage.setItem(key, legacy);
+      return legacy;
+    }
+  }
+
+  return getDefaultSource(language, mode);
 }
 
-export function saveSource(language: Language, source: string): void {
+export function saveSource(
+  language: Language,
+  source: string,
+  mode: ExecutionMode = "script"
+): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEYS.source(language), source);
+  localStorage.setItem(STORAGE_KEYS.source(language, mode), source);
+}
+
+export function loadFunctionName(): string {
+  if (typeof window === "undefined") return DEFAULT_FUNCTION_NAME;
+  return localStorage.getItem(STORAGE_KEYS.functionName) || DEFAULT_FUNCTION_NAME;
+}
+
+export function saveFunctionName(name: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(STORAGE_KEYS.functionName, name);
+}
+
+export function loadFunctionArgs(): string {
+  if (typeof window === "undefined") return DEFAULT_FUNCTION_ARGS;
+  return localStorage.getItem(STORAGE_KEYS.functionArgs) || DEFAULT_FUNCTION_ARGS;
+}
+
+export function saveFunctionArgs(args: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(STORAGE_KEYS.functionArgs, args);
 }
 
 export function loadSettings(): AppSettings {

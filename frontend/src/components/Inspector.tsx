@@ -18,6 +18,8 @@ interface InspectorProps {
   source: string;
   language: Language;
   trace: TraceStep[];
+  currentStep: number;
+  totalSteps: number;
   stdout: string;
   stderr: string;
   error: string | null;
@@ -31,6 +33,8 @@ export default function Inspector({
   source,
   language,
   trace,
+  currentStep,
+  totalSteps,
   stdout,
   stderr,
   error,
@@ -85,6 +89,8 @@ export default function Inspector({
             source={source}
             language={language}
             trace={trace}
+            currentStep={currentStep}
+            totalSteps={totalSteps}
             hasRun={!!step || !!stdout || !!stderr || !!error}
             theme={theme}
           />

@@ -85,6 +85,28 @@ def binary_search(nums, target):
     expect(result.confidence).toBeGreaterThanOrEqual(CONFIDENCE_THRESHOLD);
   });
 
+  it("detects Binary Search with low/high bounds", () => {
+    const source = `
+def search(nums, target):
+    low = 0
+    high = len(nums) - 1
+    while low <= high:
+        mid = (low + high) // 2
+        if nums[mid] == target:
+            return mid
+        if nums[mid] < target:
+            low = mid + 1
+        else:
+            high = mid - 1
+`;
+    const result = detectPattern(source, "python", [
+      step({ low: 0, high: 4, mid: 2 }),
+      step({ low: 3, high: 4, mid: 3 }),
+    ]);
+    expect(result.pattern).toBe("Binary Search");
+    expect(result.confidence).toBeGreaterThanOrEqual(CONFIDENCE_THRESHOLD);
+  });
+
   it("detects Prefix Sum", () => {
     const source = `
 def range_sum(nums):
@@ -254,7 +276,7 @@ def climb_stairs(n):
     return dp[n]
 `;
     const result = detectPattern(source, "python", []);
-    expect(result.pattern).toBe("1D DP");
+    expect(result.pattern).toBe("1D Dynamic Programming");
     expect(result.confidence).toBeGreaterThanOrEqual(CONFIDENCE_THRESHOLD);
   });
 
@@ -268,7 +290,7 @@ def unique_paths(m, n):
     return dp[m - 1][n - 1]
 `;
     const result = detectPattern(source, "python", []);
-    expect(result.pattern).toBe("2D DP");
+    expect(result.pattern).toBe("2D Dynamic Programming");
     expect(result.confidence).toBeGreaterThanOrEqual(CONFIDENCE_THRESHOLD);
   });
 

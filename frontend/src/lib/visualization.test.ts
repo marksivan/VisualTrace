@@ -3,6 +3,7 @@ import type { TraceStep } from "@/types";
 import { getPreferredStepAfterRun } from "./playback";
 import {
   getActiveArrayIndex,
+  getFirstVisualizableStep,
   getVisualizableVariables,
   isAdjacencyList,
   isLinkedListNode,
@@ -132,6 +133,18 @@ describe("shouldShowRecursionTree", () => {
     });
 
     expect(shouldShowRecursionTree(step)).toBe(false);
+  });
+});
+
+describe("getFirstVisualizableStep", () => {
+  it("returns the first step with visualizable variables", () => {
+    const trace = [
+      makeStep({ locals: { x: 1 } }),
+      makeStep({ locals: { nums: [1, 2, 3] } }),
+      makeStep({ locals: { nums: [1, 2, 3], i: 1 } }),
+    ];
+
+    expect(getFirstVisualizableStep(trace)).toBe(1);
   });
 });
 

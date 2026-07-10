@@ -12,6 +12,14 @@ export function hasPointerPair(identifiers: Set<string>): boolean {
   );
 }
 
+export function hasBinarySearchBounds(identifiers: Set<string>): boolean {
+  return (
+    hasPointerPair(identifiers) ||
+    (identifiers.has("low") && identifiers.has("high")) ||
+    (identifiers.has("lo") && identifiers.has("hi"))
+  );
+}
+
 export function hasSlowFastPair(identifiers: Set<string>): boolean {
   return (
     (identifiers.has("slow") && identifiers.has("fast")) ||

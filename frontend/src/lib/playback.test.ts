@@ -44,8 +44,8 @@ describe("getPreferredStepAfterRun", () => {
     const trace = [
       makeStep({ step: 0, locals: {} }),
       makeStep({ step: 1, locals: { nums: [1, 2, 3] } }),
-      makeStep({ step: 2, locals: { x: 1 } }),
+      makeStep({ step: 2, locals: { nums: [1, 2, 3], count: 2 } }),
     ];
-    expect(getPreferredStepAfterRun(trace)).toBe(1);
+    expect(getPreferredStepAfterRun(trace)).toBe(2);
   });
 });

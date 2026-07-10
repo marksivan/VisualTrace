@@ -22,6 +22,7 @@ import GraphViz from "./GraphViz";
 import LinkedListViz from "./LinkedListViz";
 import QueueStackViz from "./QueueStackViz";
 import RecursionViz from "./RecursionViz";
+import ScalarsViz from "./ScalarsViz";
 import TreeViz from "./TreeViz";
 
 interface DataVisualizationProps {
@@ -79,6 +80,8 @@ export default function DataVisualization({
   );
 
   const items = step ? getVisualizableVariables(step) : [];
+  const scalarItems = items.filter((item) => item.type === "primitive");
+  const structureItems = items.filter((item) => item.type !== "primitive");
   const showRecursion = step ? shouldShowRecursionTree(step) : false;
   const activeIndices = step ? getActiveArrayIndices(step) : [];
   const hasStepVisuals = items.length > 0 || showRecursion;
@@ -116,8 +119,12 @@ export default function DataVisualization({
 
       {step && showRecursion && <RecursionViz stack={step.stack} theme={theme} />}
 
+      {step && scalarItems.length > 0 && (
+        <ScalarsViz variables={scalarItems} theme={theme} />
+      )}
+
       {step &&
-        items.map(({ name, type, value }) => {
+        structureItems.map(({ name, type, value }) => {
           switch (type) {
             case "array": {
               const data = toArrayItems(value);

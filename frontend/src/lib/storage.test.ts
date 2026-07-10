@@ -5,45 +5,37 @@ import {
   getDefaultFunctionName,
   DEFAULT_FUNCTION_ARGS,
   EMPTY_FUNCTION_ARGS,
-  isLegacyDefaultSource,
   loadFunctionArgs,
   loadFunctionName,
   loadSource,
 } from "./storage";
 
 describe("storage defaults", () => {
-  it("returns empty source for initial editor state", () => {
+  it("returns empty source for explicit clear state", () => {
     expect(getEmptySource("python", "script")).toBe("");
     expect(getEmptySource("javascript", "function")).toBe("");
   });
 
-  it("returns two sum example as optional template defaults", () => {
+  it("returns two sum example as first-visit placeholder", () => {
     expect(getDefaultSource("python", "script")).toContain("two_sum");
     expect(getDefaultSource("javascript", "function")).toContain("twoSum");
     expect(getDefaultFunctionName("javascript")).toBe("twoSum");
     expect(DEFAULT_FUNCTION_ARGS).toContain("2, 7, 11, 15");
   });
 
-  it("uses empty function args for initial state", () => {
+  it("uses empty function args after reset", () => {
     expect(EMPTY_FUNCTION_ARGS).toBe("[]");
-  });
-
-  it("detects legacy two sum templates", () => {
-    expect(
-      isLegacyDefaultSource(getDefaultSource("python", "script"), "python", "script")
-    ).toBe(true);
-    expect(isLegacyDefaultSource("print('hello')", "python", "script")).toBe(false);
   });
 });
 
-describe("storage migration", () => {
+describe("storage load", () => {
   const store = new Map<string, string>();
 
   beforeEach(() => {
     store.clear();
     vi.stubGlobal("window", {});
     vi.stubGlobal("localStorage", {
-      getItem: (key: string) => store.get(key) ?? null,
+      getItem: (key: string) => (store.has(key) ? store.get(key)! : null),
       setItem: (key: string, value: string) => {
         store.set(key, value);
       },
@@ -57,14 +49,20 @@ describe("storage migration", () => {
     vi.unstubAllGlobals();
   });
 
-  it("clears cached two sum source on load", () => {
-    store.set(
-      "visualtrace:source:python:script",
-      getDefaultSource("python", "script")
-    );
+  it("loads two sum placeholder on first visit", () => {
+    expect(loadSource("python", "script")).toContain("two_sum");
+    expect(loadFunctionName("python")).toBe("two_sum");
+    expect(loadFunctionArgs("python")).toBe(DEFAULT_FUNCTION_ARGS);
+  });
+
+  it("loads empty editor after reset saved empty strings", () => {
+    store.set("visualtrace:source:python:script", "");
+    store.set("visualtrace:functionName:python", "");
+    store.set("visualtrace:functionArgs:python", EMPTY_FUNCTION_ARGS);
 
     expect(loadSource("python", "script")).toBe("");
-    expect(store.has("visualtrace:source:python:script")).toBe(false);
+    expect(loadFunctionName("python")).toBe("");
+    expect(loadFunctionArgs("python")).toBe("[]");
   });
 
   it("keeps user-edited source on load", () => {
@@ -73,13 +71,10 @@ describe("storage migration", () => {
     expect(loadSource("python", "script")).toBe("print('mine')");
   });
 
-  it("clears cached default function inputs on load", () => {
-    store.set("visualtrace:functionName:python", "two_sum");
-    store.set("visualtrace:functionArgs:python", DEFAULT_FUNCTION_ARGS);
+  it("keeps persisted two sum template on load", () => {
+    const template = getDefaultSource("python", "script");
+    store.set("visualtrace:source:python:script", template);
 
-    expect(loadFunctionName("python")).toBe("");
-    expect(loadFunctionArgs("python")).toBe("[]");
-    expect(store.has("visualtrace:functionName:python")).toBe(false);
-    expect(store.has("visualtrace:functionArgs:python")).toBe(false);
+    expect(loadSource("python", "script")).toBe(template);
   });
 });

@@ -197,62 +197,26 @@ export function getDefaultSource(
   }
 }
 
-function normalizeStoredSource(source: string): string {
-  return source.replace(/\r\n/g, "\n").trimEnd();
-}
-
-export function isLegacyDefaultSource(
-  source: string,
-  language: Language,
-  mode: ExecutionMode = "script"
-): boolean {
-  return (
-    normalizeStoredSource(source) ===
-    normalizeStoredSource(getDefaultSource(language, mode))
-  );
-}
-
-function clearLegacyDefaultSource(
-  language: Language,
-  mode: ExecutionMode
-): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(STORAGE_KEYS.source(language, mode));
-  if (mode === "script") {
-    localStorage.removeItem(STORAGE_KEYS.legacySource(language));
-  }
-}
-
 export function loadSource(
   language: Language,
   mode: ExecutionMode = "script"
 ): string {
-  if (typeof window === "undefined") return getEmptySource(language, mode);
+  if (typeof window === "undefined") return getDefaultSource(language, mode);
 
   const key = STORAGE_KEYS.source(language, mode);
   const stored = localStorage.getItem(key);
-  if (stored) {
-    if (isLegacyDefaultSource(stored, language, mode)) {
-      clearLegacyDefaultSource(language, mode);
-      return getEmptySource(language, mode);
-    }
-    return stored;
-  }
+  if (stored !== null) return stored;
 
   // Migrate legacy single-key storage into script mode.
   if (mode === "script") {
     const legacy = localStorage.getItem(STORAGE_KEYS.legacySource(language));
-    if (legacy) {
-      if (isLegacyDefaultSource(legacy, language, mode)) {
-        localStorage.removeItem(STORAGE_KEYS.legacySource(language));
-        return getEmptySource(language, mode);
-      }
+    if (legacy !== null) {
       localStorage.setItem(key, legacy);
       return legacy;
     }
   }
 
-  return getEmptySource(language, mode);
+  return getDefaultSource(language, mode);
 }
 
 export function saveSource(
@@ -265,14 +229,10 @@ export function saveSource(
 }
 
 export function loadFunctionName(language: Language): string {
-  if (typeof window === "undefined") return "";
+  if (typeof window === "undefined") return getDefaultFunctionName(language);
   const stored = localStorage.getItem(STORAGE_KEYS.functionName(language));
-  if (stored === null) return "";
-  if (stored === getDefaultFunctionName(language)) {
-    localStorage.removeItem(STORAGE_KEYS.functionName(language));
-    return "";
-  }
-  return stored;
+  if (stored !== null) return stored;
+  return getDefaultFunctionName(language);
 }
 
 export function saveFunctionName(language: Language, name: string): void {
@@ -281,14 +241,10 @@ export function saveFunctionName(language: Language, name: string): void {
 }
 
 export function loadFunctionArgs(language: Language): string {
-  if (typeof window === "undefined") return EMPTY_FUNCTION_ARGS;
+  if (typeof window === "undefined") return DEFAULT_FUNCTION_ARGS;
   const stored = localStorage.getItem(STORAGE_KEYS.functionArgs(language));
-  if (stored === null) return EMPTY_FUNCTION_ARGS;
-  if (stored === DEFAULT_FUNCTION_ARGS) {
-    localStorage.removeItem(STORAGE_KEYS.functionArgs(language));
-    return EMPTY_FUNCTION_ARGS;
-  }
-  return stored;
+  if (stored !== null) return stored;
+  return DEFAULT_FUNCTION_ARGS;
 }
 
 export function saveFunctionArgs(language: Language, args: string): void {

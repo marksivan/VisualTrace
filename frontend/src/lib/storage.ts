@@ -72,8 +72,92 @@ const DEFAULT_JAVASCRIPT_FUNCTION_SOURCE = `function twoSum(nums, target) {
 }
 `;
 
+const DEFAULT_JAVA_SCRIPT_SOURCE = `import java.util.*;
+
+class Solution {
+    public static int[] twoSum(int[] nums, int target) {
+        Map<Integer, Integer> seen = new HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            int complement = target - nums[i];
+            if (seen.containsKey(complement)) {
+                return new int[] { seen.get(complement), i };
+            }
+            seen.put(nums[i], i);
+        }
+        return new int[] {};
+    }
+
+    public static void main(String[] args) {
+        int[] nums = {2, 7, 11, 15};
+        int[] result = twoSum(nums, 9);
+        System.out.println(Arrays.toString(result));
+    }
+}
+`;
+
+const DEFAULT_JAVA_FUNCTION_SOURCE = `import java.util.*;
+
+class Solution {
+    public static int[] twoSum(int[] nums, int target) {
+        Map<Integer, Integer> seen = new HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            int complement = target - nums[i];
+            if (seen.containsKey(complement)) {
+                return new int[] { seen.get(complement), i };
+            }
+            seen.put(nums[i], i);
+        }
+        return new int[] {};
+    }
+}
+`;
+
+const DEFAULT_CPP_SCRIPT_SOURCE = `#include <iostream>
+using namespace std;
+
+int main() {
+    int nums[] = {2, 7, 11, 15};
+    int target = 9;
+    for (int i = 0; i < 4; i++) {
+        for (int j = i + 1; j < 4; j++) {
+            if (nums[i] + nums[j] == target) {
+                cout << "[" << i << ", " << j << "]" << endl;
+                return 0;
+            }
+        }
+    }
+    return 0;
+}
+`;
+
+const DEFAULT_CPP_FUNCTION_SOURCE = `#include <iostream>
+using namespace std;
+
+void twoSum() {
+    int nums[] = {2, 7, 11, 15};
+    int target = 9;
+    for (int i = 0; i < 4; i++) {
+        for (int j = i + 1; j < 4; j++) {
+            if (nums[i] + nums[j] == target) {
+                cout << "[" << i << ", " << j << "]" << endl;
+                return;
+            }
+        }
+    }
+}
+`;
+
 export function getDefaultFunctionName(language: Language): string {
-  return language === "javascript" ? "twoSum" : "two_sum";
+  switch (language) {
+    case "javascript":
+      return "twoSum";
+    case "java":
+      return "twoSum";
+    case "cpp":
+      return "twoSum";
+    default:
+      return "two_sum";
+  }
 }
 
 export const DEFAULT_FUNCTION_ARGS = "[[2, 7, 11, 15], 9]";
@@ -91,6 +175,14 @@ export function getDefaultSource(
       return mode === "function"
         ? DEFAULT_JAVASCRIPT_FUNCTION_SOURCE
         : DEFAULT_JAVASCRIPT_SCRIPT_SOURCE;
+    case "java":
+      return mode === "function"
+        ? DEFAULT_JAVA_FUNCTION_SOURCE
+        : DEFAULT_JAVA_SCRIPT_SOURCE;
+    case "cpp":
+      return mode === "function"
+        ? DEFAULT_CPP_FUNCTION_SOURCE
+        : DEFAULT_CPP_SCRIPT_SOURCE;
     default:
       return `// ${language} is not supported in the browser yet.\n`;
   }

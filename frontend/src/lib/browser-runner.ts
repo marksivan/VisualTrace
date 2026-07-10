@@ -1,5 +1,7 @@
 import type { ExecuteRequest, ExecutionResult, Language, LanguageInfo } from "@/types";
+import { executeCppInBrowser, preloadCppRuntime } from "@/lib/runners/cpp-runner";
 import { executeJavaScriptInBrowser } from "@/lib/runners/javascript-runner";
+import { executeJavaInBrowser, preloadJavaRuntime } from "@/lib/runners/java-runner";
 import {
   executePythonInBrowser,
   preloadPythonRuntime,
@@ -8,9 +10,21 @@ import { isRuntimeLanguage } from "@/lib/runners/shared";
 
 export { preloadPythonRuntime };
 
+export type RuntimeLoadStatus = "loading" | "ready" | "error";
+
 export async function preloadRuntime(language: Language): Promise<void> {
-  if (language === "python") {
-    await preloadPythonRuntime();
+  switch (language) {
+    case "python":
+      await preloadPythonRuntime();
+      break;
+    case "cpp":
+      await preloadCppRuntime();
+      break;
+    case "java":
+      await preloadJavaRuntime();
+      break;
+    default:
+      break;
   }
 }
 
@@ -22,38 +36,42 @@ export async function executeInBrowser(
       return executePythonInBrowser(request);
     case "javascript":
       return executeJavaScriptInBrowser(request);
+    case "java":
+      return executeJavaInBrowser(request);
+    case "cpp":
+      return executeCppInBrowser(request);
     default:
-      throw new Error(
-        `${request.language} is not supported in the browser yet. JavaScript and Python are available today.`
-      );
+      throw new Error(`${request.language} is not supported in the browser yet.`);
   }
 }
 
 export const BROWSER_LANGUAGES: LanguageInfo[] = [
   { id: "python", name: "Python", enabled: true },
   { id: "javascript", name: "JavaScript", enabled: true },
-  { id: "java", name: "Java", enabled: false },
-  { id: "cpp", name: "C++", enabled: false },
+  { id: "java", name: "Java", enabled: true },
+  { id: "cpp", name: "C++", enabled: true },
 ];
 
 export function languageNeedsRuntimeLoad(language: Language): boolean {
-  return language === "python";
+  return language === "python" || language === "cpp";
 }
 
 export function isLanguageReady(
   language: Language,
-  pythonStatus: "loading" | "ready" | "error"
+  runtimeStatuses: Record<"python" | "cpp", RuntimeLoadStatus>
 ): boolean {
-  if (language === "javascript") return true;
-  if (language === "python") return pythonStatus === "ready";
+  if (language === "javascript" || language === "java") return true;
+  if (language === "python") return runtimeStatuses.python === "ready";
+  if (language === "cpp") return runtimeStatuses.cpp === "ready";
   return false;
 }
 
 export function getRuntimeStatus(
   language: Language,
-  pythonStatus: "loading" | "ready" | "error"
-): "loading" | "ready" | "error" | "unsupported" {
+  runtimeStatuses: Record<"python" | "cpp", RuntimeLoadStatus>
+): RuntimeLoadStatus | "unsupported" {
   if (!isRuntimeLanguage(language)) return "unsupported";
-  if (language === "javascript") return "ready";
-  return pythonStatus;
+  if (language === "javascript" || language === "java") return "ready";
+  if (language === "python") return runtimeStatuses.python;
+  return runtimeStatuses.cpp;
 }

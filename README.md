@@ -16,7 +16,7 @@ Multi-language algorithm execution visualizer. Runs in your browser with local s
 | 6 | Playback controls | Done |
 | 7 | Inspector (variables, stack, console) | Done |
 | 8 | Data structure visualizations | Done |
-| 9 | Multi-language foundation | Done (Python + JavaScript) |
+| 9 | Multi-language foundation | Done (Python, JavaScript, Java, C++) |
 | 10 | Polish & documentation | Planned |
 
 ## Supported languages
@@ -25,10 +25,10 @@ Multi-language algorithm execution visualizer. Runs in your browser with local s
 |----------|---------|---------|--------|
 | Python | Pyodide (in-browser) | Line-by-line | Supported |
 | JavaScript | Native browser | Line-by-line (instrumented) | Supported |
-| Java | — | — | Coming soon |
-| C++ | — | — | Coming soon |
+| Java | Bundled interpreter ([java-runner](https://github.com/ChrisMayfield/java-runner), MIT) | Limited (exception stack only) | Supported |
+| C++ | [JSCPP](https://github.com/felixhao28/JSCPP) (dynamic import) | Line-by-line (debugger) | Supported |
 
-Java and C++ require heavier WASM runtimes and are planned for a future milestone.
+Java tracing does not yet step through every line; C++ uses JSCPP's debugger when tracing is enabled.
 
 ## Visualize tab
 
@@ -46,6 +46,11 @@ cd frontend && npm install && npm run build:pages && npx serve out
 ```
 
 Open http://localhost:3000/VisualTrace/
+
+## Third-party code
+
+- **java-runner** — Java interpreter sources vendored from [ChrisMayfield/java-runner](https://github.com/ChrisMayfield/java-runner) (MIT).
+- **JSCPP** — C++ interpreter loaded at runtime via npm ([felixhao28/JSCPP](https://github.com/felixhao28/JSCPP)).
 
 ## License
 

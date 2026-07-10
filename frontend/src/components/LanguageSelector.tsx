@@ -23,7 +23,7 @@ export default function LanguageSelector({
     <select
       value={selected}
       onChange={(e) => onChange(e.target.value)}
-      className={t.select}
+      className={`max-w-[8.5rem] text-sm sm:max-w-none ${t.select}`}
       aria-label="Select programming language"
     >
       {languages.map((lang) => (

@@ -70,6 +70,7 @@ export default function VisualTraceApp() {
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const [showTestInput, setShowTestInput] = useState(true);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [mobilePanel, setMobilePanel] = useState<"editor" | "inspector">("editor");
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("console");
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastRunSourceRef = useRef<string | null>(null);
@@ -223,6 +224,7 @@ export default function VisualTraceApp() {
           trace: [],
         });
         setInspectorTab("console");
+        setMobilePanel("inspector");
         return;
       }
 
@@ -235,6 +237,7 @@ export default function VisualTraceApp() {
           trace: [],
         });
         setInspectorTab("console");
+        setMobilePanel("inspector");
         return;
       }
 
@@ -248,6 +251,7 @@ export default function VisualTraceApp() {
         trace: [],
       });
       setInspectorTab("console");
+      setMobilePanel("inspector");
       return;
     }
 
@@ -270,6 +274,7 @@ export default function VisualTraceApp() {
         });
         setIsRunning(false);
         setInspectorTab("console");
+        setMobilePanel("inspector");
         return;
       }
 
@@ -283,6 +288,7 @@ export default function VisualTraceApp() {
         });
         setIsRunning(false);
         setInspectorTab("console");
+        setMobilePanel("inspector");
         return;
       }
 
@@ -299,6 +305,7 @@ export default function VisualTraceApp() {
         });
         setIsRunning(false);
         setInspectorTab("console");
+        setMobilePanel("inspector");
         return;
       }
     }
@@ -325,6 +332,7 @@ export default function VisualTraceApp() {
       } else {
         setInspectorTab("visualize");
       }
+      setMobilePanel("inspector");
 
       saveSession({
         id: sessionIdRef.current,
@@ -348,6 +356,7 @@ export default function VisualTraceApp() {
         trace: [],
       });
       setInspectorTab("console");
+      setMobilePanel("inspector");
     } finally {
       setIsRunning(false);
     }
@@ -422,23 +431,27 @@ export default function VisualTraceApp() {
   const displayStderr = currentTraceStep?.stderr || result?.stderr || "";
 
   return (
-    <div className={`flex h-screen flex-col ${t.app}`}>
-      <header className={`flex items-center justify-between border-b px-4 py-2 ${t.header}`}>
-        <div className="flex items-center gap-3">
-          <Activity className="h-5 w-5 text-blue-500" />
-          <h1 className="text-lg font-semibold tracking-tight">VisualTrace</h1>
-          <span className={`text-xs ${t.labelMuted}`}>
+    <div className={`flex h-dvh flex-col ${t.app}`}>
+      <header
+        className={`flex shrink-0 flex-col gap-2 border-b px-3 py-2 sm:px-4 lg:flex-row lg:items-center lg:justify-between`}
+      >
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <Activity className="h-5 w-5 shrink-0 text-blue-500" />
+          <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">
+            VisualTrace
+          </h1>
+          <span className={`hidden text-xs md:inline ${t.labelMuted}`}>
             Runs in your browser · saved to local storage
           </span>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="flex min-w-0 items-center gap-1.5">
             {runtimeStatus === "loading" &&
               (language === "python" || language === "cpp") && (
-              <Loader2 className="h-3 w-3 animate-spin text-yellow-500" />
+              <Loader2 className="h-3 w-3 shrink-0 animate-spin text-yellow-500" />
             )}
             <div
-              className={`h-2 w-2 rounded-full ${
+              className={`h-2 w-2 shrink-0 rounded-full ${
                 runtimeStatus === "ready"
                   ? "bg-green-500"
                   : runtimeStatus === "loading"
@@ -448,7 +461,7 @@ export default function VisualTraceApp() {
                       : "bg-red-500"
               }`}
             />
-            <span className={`text-xs ${t.subtext}`}>
+            <span className={`truncate text-xs ${t.subtext}`}>
               {languageLabel}{" "}
               {runtimeStatus === "ready"
                 ? "ready"
@@ -474,8 +487,27 @@ export default function VisualTraceApp() {
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        <div className={`flex w-1/2 flex-col border-r ${t.panel}`}>
+      <div className={`flex shrink-0 border-b lg:hidden ${t.panel}`}>
+        {(["editor", "inspector"] as const).map((panel) => (
+          <button
+            key={panel}
+            type="button"
+            onClick={() => setMobilePanel(panel)}
+            className={`flex-1 px-3 py-2 text-xs font-medium capitalize sm:text-sm ${
+              mobilePanel === panel ? t.tabActive : t.tabInactive
+            }`}
+          >
+            {panel}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+        <div
+          className={`flex min-h-0 flex-1 flex-col lg:w-1/2 lg:border-r ${t.panel} ${
+            mobilePanel === "editor" ? "" : "hidden lg:flex"
+          }`}
+        >
           <div className={`flex items-center justify-between border-b px-3 py-1.5 ${t.panel}`}>
             <span className={`text-xs font-medium ${t.label}`}>Editor</span>
             <div className="flex items-center gap-2">
@@ -538,7 +570,11 @@ export default function VisualTraceApp() {
           />
         </div>
 
-        <div className="flex w-1/2 flex-col">
+        <div
+          className={`flex min-h-0 flex-1 flex-col lg:w-1/2 ${
+            mobilePanel === "inspector" ? "" : "hidden lg:flex"
+          }`}
+        >
           <div className={`border-b px-3 py-1.5 ${t.panel}`}>
             <span className={`text-xs font-medium ${t.label}`}>Inspector</span>
           </div>

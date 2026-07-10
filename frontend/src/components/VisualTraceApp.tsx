@@ -9,6 +9,7 @@ import ExecutionControls from "@/components/ExecutionControls";
 import PlaybackControls from "@/components/PlaybackControls";
 import Inspector from "@/components/Inspector";
 import ThemeToggle from "@/components/ThemeToggle";
+import CopyrightFooter from "@/components/CopyrightFooter";
 import {
   BROWSER_LANGUAGES,
   executeInBrowser,
@@ -379,6 +380,8 @@ export default function VisualTraceApp() {
           </div>
         </div>
       </div>
+
+      <CopyrightFooter theme={theme} />
     </div>
   );
 }

@@ -50,5 +50,8 @@ export function getThemeClasses(theme: Theme) {
     toggleBtn: isDark
       ? "border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
       : "border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-100",
+    resetBtn: isDark
+      ? "border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-600 hover:bg-zinc-800 hover:text-zinc-200"
+      : "border-zinc-300 bg-zinc-50 text-zinc-600 hover:border-zinc-400 hover:bg-zinc-100 hover:text-zinc-800",
   };
 }

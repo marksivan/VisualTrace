@@ -17,7 +17,7 @@ import {
   isLanguageReady,
   preloadPythonRuntime,
 } from "@/lib/browser-runner";
-import { getPreferredStepAfterRun } from "@/lib/playback";
+import { getPreferredStepAfterRun, shouldResetPlaybackOnSourceChange } from "@/lib/playback";
 import { getLanguageDisplayName } from "@/lib/runners/shared";
 import {
   loadFunctionArgs,
@@ -64,6 +64,7 @@ export default function VisualTraceApp() {
   const [showTestInput, setShowTestInput] = useState(true);
   const [inspectorTab, setInspectorTab] = useState<"variables" | "stack" | "console" | "visualize">("variables");
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastRunSourceRef = useRef<string | null>(null);
   const sessionIdRef = useRef(
     typeof crypto !== "undefined" ? crypto.randomUUID() : "session-local"
   );
@@ -87,12 +88,27 @@ export default function VisualTraceApp() {
   const runtimeStatus = getRuntimeStatus(language, pythonStatus);
   const languageLabel = getLanguageDisplayName(language);
 
+  const resetPlaybackToStart = useCallback(() => {
+    setCurrentStep(0);
+    setPlaybackState("paused");
+    savePlaybackPosition(sessionIdRef.current, 0);
+  }, []);
+
   const handleSourceChange = useCallback(
     (value: string) => {
+      if (
+        shouldResetPlaybackOnSourceChange(
+          value,
+          lastRunSourceRef.current,
+          (result?.trace.length ?? 0) > 0
+        )
+      ) {
+        resetPlaybackToStart();
+      }
       setSource(value);
       if (settings.autoSave) saveSource(language, value, executionMode);
     },
-    [language, executionMode, settings.autoSave]
+    [language, executionMode, settings.autoSave, result, resetPlaybackToStart]
   );
 
   const handleThemeToggle = () => {
@@ -110,6 +126,7 @@ export default function VisualTraceApp() {
     saveSettings(updated);
     setSource(loadSource(language, mode));
     setResult(null);
+    lastRunSourceRef.current = null;
     setCurrentStep(0);
     setPlaybackState("idle");
   };
@@ -124,6 +141,7 @@ export default function VisualTraceApp() {
     setFunctionName(loadFunctionName(nextLanguage));
     setFunctionArgs(loadFunctionArgs(nextLanguage));
     setResult(null);
+    lastRunSourceRef.current = null;
     setCurrentStep(0);
     setPlaybackState("idle");
   };
@@ -242,6 +260,7 @@ export default function VisualTraceApp() {
       const initialStep = getPreferredStepAfterRun(execResult.trace);
 
       setResult(execResult);
+      lastRunSourceRef.current = source;
       setCurrentStep(initialStep);
       setPlaybackState(execResult.trace.length > 0 ? "paused" : "finished");
 

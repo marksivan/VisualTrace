@@ -59,6 +59,7 @@ async function getPyodide(): Promise<PyodideInstance> {
 
 const TRACE_SETUP = `
 import json
+import math
 import sys
 import traceback
 from io import StringIO
@@ -66,7 +67,17 @@ from io import StringIO
 def serialize_value(value, depth=0):
     if depth > 3:
         return repr(value)
-    if value is None or isinstance(value, (bool, int, float, str)):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        if math.isnan(value):
+            return "NaN"
+        if math.isinf(value):
+            return "Infinity" if value > 0 else "-Infinity"
+        return value
+    if value is None or isinstance(value, str):
         return value
     if isinstance(value, (list, tuple)):
         return [serialize_value(v, depth + 1) for v in value[:50]]

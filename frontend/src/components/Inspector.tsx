@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import type { InspectorTab } from "@/types";
+import { INSPECTOR_TAB_ORDER } from "@/types";
 import type { TraceStep } from "@/types";
 import {
   formatValueForDisplay,
@@ -18,8 +20,8 @@ interface InspectorProps {
   stderr: string;
   error: string | null;
   theme?: Theme;
-  activeTab?: "variables" | "stack" | "console" | "visualize";
-  onTabChange?: (tab: "variables" | "stack" | "console" | "visualize") => void;
+  activeTab?: InspectorTab;
+  onTabChange?: (tab: InspectorTab) => void;
 }
 
 export default function Inspector({
@@ -31,12 +33,12 @@ export default function Inspector({
   activeTab: controlledTab,
   onTabChange,
 }: InspectorProps) {
-  const [internalTab, setInternalTab] = useState<"variables" | "stack" | "console" | "visualize">("variables");
+  const [internalTab, setInternalTab] = useState<InspectorTab>("console");
   const activeTab = controlledTab ?? internalTab;
   const t = getThemeClasses(theme);
   const stepResult = getResultAtStep(step);
 
-  const setActiveTab = (tab: "variables" | "stack" | "console" | "visualize") => {
+  const setActiveTab = (tab: InspectorTab) => {
     if (onTabChange) onTabChange(tab);
     else setInternalTab(tab);
   };
@@ -44,7 +46,7 @@ export default function Inspector({
   return (
     <div className="flex h-full flex-col">
       <div className={`flex border-b ${t.panel}`}>
-        {(["variables", "stack", "console", "visualize"] as const).map((tab) => (
+        {INSPECTOR_TAB_ORDER.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -69,16 +71,16 @@ export default function Inspector({
             </button>
           </div>
         )}
-        {activeTab === "variables" && (
-          <VariablesPanel step={step} stepResult={stepResult} theme={theme} />
-        )}
-        {activeTab === "stack" && <StackPanel step={step} theme={theme} />}
         {activeTab === "console" && (
           <ConsolePanel stdout={stdout} stderr={stderr} error={error} theme={theme} />
         )}
         {activeTab === "visualize" && (
           <DataVisualization step={step} hasRun={!!step || !!stdout || !!stderr || !!error} theme={theme} />
         )}
+        {activeTab === "variables" && (
+          <VariablesPanel step={step} stepResult={stepResult} theme={theme} />
+        )}
+        {activeTab === "stack" && <StackPanel step={step} theme={theme} />}
       </div>
     </div>
   );

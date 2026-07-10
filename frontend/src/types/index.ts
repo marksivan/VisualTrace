@@ -63,3 +63,12 @@ export interface AppSettings {
 }
 
 export type PlaybackState = "idle" | "playing" | "paused" | "finished";
+
+export type InspectorTab = "console" | "visualize" | "variables" | "stack";
+
+export const INSPECTOR_TAB_ORDER: InspectorTab[] = [
+  "console",
+  "visualize",
+  "variables",
+  "stack",
+];

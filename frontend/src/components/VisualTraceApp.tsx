@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Activity, Loader2 } from "lucide-react";
+import { Activity, Loader2, RotateCcw } from "lucide-react";
 import CodeEditor from "@/components/CodeEditor";
 import LanguageSelector from "@/components/LanguageSelector";
 import TestInput from "@/components/TestInput";
@@ -20,6 +20,9 @@ import {
 import { getPreferredStepAfterRun, shouldResetPlaybackOnSourceChange } from "@/lib/playback";
 import { getLanguageDisplayName } from "@/lib/runners/shared";
 import {
+  DEFAULT_FUNCTION_ARGS,
+  getDefaultFunctionName,
+  getDefaultSource,
   loadFunctionArgs,
   loadFunctionName,
   loadSettings,
@@ -36,6 +39,7 @@ import type {
   AppSettings,
   ExecutionMode,
   ExecutionResult,
+  InspectorTab,
   Language,
   LanguageInfo,
   PlaybackState,
@@ -62,7 +66,7 @@ export default function VisualTraceApp() {
   const [pythonStatus, setPythonStatus] = useState<"loading" | "ready" | "error">("loading");
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const [showTestInput, setShowTestInput] = useState(true);
-  const [inspectorTab, setInspectorTab] = useState<"variables" | "stack" | "console" | "visualize">("variables");
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>("console");
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastRunSourceRef = useRef<string | null>(null);
   const sessionIdRef = useRef(
@@ -154,6 +158,40 @@ export default function VisualTraceApp() {
   const handleFunctionArgsChange = (value: string) => {
     setFunctionArgs(value);
     saveFunctionArgs(language, value);
+  };
+
+  const handleInspectorTabChange = (tab: InspectorTab) => {
+    if (tab === "visualize" && inspectorTab !== "visualize" && (result?.trace.length ?? 0) > 0) {
+      resetPlaybackToStart();
+    }
+    setInspectorTab(tab);
+  };
+
+  const handleRefresh = () => {
+    const confirmed = window.confirm(
+      "Reset the editor, inputs, and run results to defaults? Your current code and output will be cleared."
+    );
+    if (!confirmed) return;
+
+    const defaultSource = getDefaultSource(language, executionMode);
+    const defaultFunctionName = getDefaultFunctionName(language);
+
+    setSource(defaultSource);
+    setStdin("");
+    setFunctionName(defaultFunctionName);
+    setFunctionArgs(DEFAULT_FUNCTION_ARGS);
+    setResult(null);
+    lastRunSourceRef.current = null;
+    setCurrentStep(0);
+    setPlaybackState("idle");
+    setInspectorTab("console");
+
+    if (settings.autoSave) {
+      saveSource(language, defaultSource, executionMode);
+      saveFunctionName(language, defaultFunctionName);
+      saveFunctionArgs(language, DEFAULT_FUNCTION_ARGS);
+    }
+    savePlaybackPosition(sessionIdRef.current, 0);
   };
 
   const handleRun = async () => {
@@ -267,7 +305,7 @@ export default function VisualTraceApp() {
       if (execResult.error || execResult.stdout || execResult.stderr) {
         setInspectorTab("console");
       } else {
-        setInspectorTab("variables");
+        setInspectorTab("visualize");
       }
 
       saveSession({
@@ -421,12 +459,22 @@ export default function VisualTraceApp() {
         <div className={`flex w-1/2 flex-col border-r ${t.panel}`}>
           <div className={`flex items-center justify-between border-b px-3 py-1.5 ${t.panel}`}>
             <span className={`text-xs font-medium ${t.label}`}>Editor</span>
-            <button
-              onClick={() => setShowTestInput(!showTestInput)}
-              className={`text-xs ${t.subtext} hover:opacity-80`}
-            >
-              {showTestInput ? "Hide" : "Show"} Input
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRefresh}
+                className={`flex items-center gap-1 text-xs ${t.subtext} hover:opacity-80`}
+                title="Reset editor and inputs to defaults"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Reset
+              </button>
+              <button
+                onClick={() => setShowTestInput(!showTestInput)}
+                className={`text-xs ${t.subtext} hover:opacity-80`}
+              >
+                {showTestInput ? "Hide" : "Show"} Input
+              </button>
+            </div>
           </div>
 
           {showTestInput && (
@@ -483,7 +531,7 @@ export default function VisualTraceApp() {
               error={result?.error ?? null}
               theme={theme}
               activeTab={inspectorTab}
-              onTabChange={setInspectorTab}
+              onTabChange={handleInspectorTabChange}
             />
           </div>
         </div>

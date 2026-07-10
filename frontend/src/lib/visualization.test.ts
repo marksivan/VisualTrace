@@ -63,6 +63,29 @@ describe("getVisualizableVariables", () => {
     expect(items.find((i) => i.name === "seen")?.type).toBe("dict");
   });
 
+  it("includes scalar variables for step-by-step state", () => {
+    const step = makeStep({
+      locals: {
+        nums: [1, 2, 3, -2, 2],
+        prefix_counts: { 0: 1, 1: 1 },
+        current_sum: 3,
+        count: 1,
+        needed: 0,
+        k: 2,
+      },
+    });
+
+    const items = getVisualizableVariables(step);
+    const scalars = items.filter((item) => item.type === "primitive");
+    expect(scalars.map((item) => item.name).sort()).toEqual([
+      "count",
+      "current_sum",
+      "k",
+      "needed",
+    ]);
+    expect(items.find((item) => item.name === "current_sum")?.value).toBe(3);
+  });
+
   it("detects queue and stack by name", () => {
     const step = makeStep({
       locals: {
@@ -228,14 +251,15 @@ describe("hasVisualizableTrace", () => {
     ];
 
     expect(hasVisualizableTrace(trace)).toBe(true);
-    expect(hasVisualizableTrace([makeStep({ locals: { x: 1 } })])).toBe(false);
+    expect(hasVisualizableTrace([makeStep({ locals: { x: 1 } })])).toBe(true);
+    expect(hasVisualizableTrace([makeStep({ locals: {} })])).toBe(false);
   });
 });
 
 describe("getFirstVisualizableStep", () => {
   it("returns the first step with visualizable variables", () => {
     const trace = [
-      makeStep({ locals: { x: 1 } }),
+      makeStep({ locals: {} }),
       makeStep({ locals: { nums: [1, 2, 3] } }),
       makeStep({ locals: { nums: [1, 2, 3], i: 1 } }),
     ];

@@ -42,7 +42,7 @@ export function getVisualizableVariables(step: TraceStep | null): VizItem[] {
     if (!isInspectableVariable(name, value)) continue;
 
     const type = detectVizType(name, value);
-    if (type && type !== "primitive") {
+    if (type) {
       items.push({ name, type, value });
     }
   }
@@ -53,7 +53,7 @@ export function getVisualizableVariables(step: TraceStep | null): VizItem[] {
     !items.some((item) => item.name === "result")
   ) {
     const type = detectVizType("result", result);
-    if (type && type !== "primitive") {
+    if (type) {
       items.push({ name: "result", type, value: result });
     }
   }
@@ -128,7 +128,7 @@ function detectVizType(name: string, value: unknown): VizType | null {
   if (lower.includes("stack")) return "stack";
 
   if (typeof value === "string") {
-    return shouldVisualizeString(value) ? "array" : "primitive";
+    return shouldVisualizeString(value) ? "array" : null;
   }
 
   if (typeof value === "number" || typeof value === "boolean") {

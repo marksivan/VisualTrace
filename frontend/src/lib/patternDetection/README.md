@@ -19,8 +19,8 @@ patternDetection/
 
 1. `parseSource()` analyzes the user's code once (AST for JavaScript, regex/heuristics for other languages).
 2. Each registered detector scores the shared `DetectionContext` from `0.0` to `1.0`.
-3. `PatternRegistry` returns the highest-confidence match.
-4. If confidence is below `0.55`, the UI shows **Unknown / Generic Algorithm**.
+3. `PatternRegistry` returns up to **3** unique matches above the confidence threshold, sorted by score.
+4. If none qualify, the UI shows **Unknown / Generic Algorithm**.
 
 Detectors combine:
 
@@ -86,11 +86,12 @@ Source is parsed once per run and reused by all detectors. Typical interview-siz
 ```typescript
 import { detectPattern } from "@/lib/patternDetection";
 
-const { confidence, pattern } = detectPattern(source, language, trace);
+const { confidence, pattern, patterns } = detectPattern(source, language, trace);
 ```
 
-- `pattern`: matched label, or `null` if below threshold
-- `confidence`: `0.0` – `1.0`
+- `patterns`: up to 3 matches above threshold, highest confidence first
+- `pattern`: top match (same as `patterns[0]?.pattern`), or `null`
+- `confidence`: highest score among matches
 
 ## UI
 

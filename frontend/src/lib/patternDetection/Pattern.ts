@@ -9,12 +9,23 @@ export interface DetectionResult {
   pattern: string | null;
 }
 
-export interface PatternDetectionResult {
+export interface PatternMatch {
+  pattern: string;
   confidence: number;
+}
+
+export interface PatternDetectionResult {
+  /** Highest confidence among detected patterns. */
+  confidence: number;
+  /** Top match, kept for backward compatibility. */
   pattern: string | null;
+  /** Up to MAX_DETECTED_PATTERNS matches above the confidence threshold. */
+  patterns: PatternMatch[];
 }
 
 export const CONFIDENCE_THRESHOLD = 0.55;
+
+export const MAX_DETECTED_PATTERNS = 3;
 
 export const GENERIC_PATTERN_LABEL = "Unknown / Generic Algorithm";
 

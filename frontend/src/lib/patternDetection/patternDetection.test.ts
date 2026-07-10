@@ -309,6 +309,7 @@ def factorial(n):
   it("returns generic pattern for unknown code", () => {
     const result = detectPattern("x = 1\nprint(x)", "python", []);
     expect(result.pattern).toBeNull();
+    expect(result.patterns).toEqual([]);
     expect(result.confidence).toBeLessThan(CONFIDENCE_THRESHOLD);
   });
 
@@ -361,5 +362,33 @@ def solve(nums, target):
     const result = detectPattern(source, "python", traceWithChangingPointers());
     expect(result.pattern).not.toBeNull();
     expect(result.confidence).toBeGreaterThanOrEqual(CONFIDENCE_THRESHOLD);
+  });
+
+  it("returns up to three patterns when multiple match", () => {
+    const source = `
+from collections import deque
+import heapq
+
+def solve(nums, target):
+    seen = {}
+    left, right = 0, len(nums) - 1
+    queue = deque()
+    heap = []
+    while left < right:
+        if target - nums[left] in seen:
+            return [seen[target - nums[left]], left]
+        seen[nums[left]] = left
+        queue.append(left)
+        queue.popleft()
+        heapq.heappush(heap, nums[left])
+        left += 1
+`;
+    const result = detectPattern(source, "python", traceWithChangingPointers());
+    expect(result.patterns.length).toBeGreaterThanOrEqual(2);
+    expect(result.patterns.length).toBeLessThanOrEqual(3);
+    expect(result.pattern).toBe(result.patterns[0]?.pattern ?? null);
+    expect(new Set(result.patterns.map((match) => match.pattern)).size).toBe(
+      result.patterns.length
+    );
   });
 });

@@ -11,6 +11,7 @@ from io import StringIO
 from typing import Any
 
 
+
 def serialize_value(value: Any, depth: int = 0) -> Any:
     """Serialize a Python value to JSON-compatible form."""
     if depth > 3:
